@@ -1,0 +1,142 @@
+.admin-dashboard {
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+.loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem;
+  color: #6b7280;
+}
+
+.operations-list {
+  padding: 0 2rem 2rem;
+}
+
+.operation-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid #3b82f6;
+}
+
+.operation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.operation-type {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.bank-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.type-label {
+  font-weight: 500;
+  color: #374151;
+}
+
+.operation-date {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.operation-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 0;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.detail-item .label {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.detail-item .value {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.operation-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.action-btn.approve {
+  background-color: #10b981;
+  color: white;
+}
+
+.action-btn.approve:hover {
+  background-color: #059669;
+}
+
+.action-btn.reject {
+  background-color: #ef4444;
+  color: white;
+}
+
+.action-btn.reject:hover {
+  background-color: #dc2626;
+}
+
+@media (max-width: 768px) {
+  .operation-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .operation-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  
+  .action-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}

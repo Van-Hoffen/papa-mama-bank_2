@@ -1,0 +1,76 @@
+```
+# Environment variables
+.env
+
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+target/
+
+# Logs
+*.log
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Python related
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+
+# Temporary folders
+tmp/
+temp/
+
+# Local configuration
+.env.local
+.env.*
+!.env.example
+
+# Database
+*.db
+*.db-journal
+
+# Distribution / packaging
+*.tar.gz
+*.zip
+
+# Node.js
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Bower dependency directory (if you're using bower)
+bower_components/
+
+# Jspm dependency directory
+jspm_packages/
+
+# Webpack
+webpack-stats.json
+
+# TypeScript
+*.tsbuildinfo
+```
