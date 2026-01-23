@@ -1,0 +1,343 @@
+.child-dashboard {
+  min-height: 100vh;
+  background-color: #f9fafb;
+}
+
+.user-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.new-deposit-btn {
+  background-color: #10b981;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.new-deposit-btn:hover {
+  background-color: #059669;
+}
+
+.deposits-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+  padding: 0 2rem 2rem;
+}
+
+.deposit-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.deposit-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.deposit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.bank-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bank-icon {
+  font-size: 1.5rem;
+}
+
+.bank-name {
+  font-weight: 600;
+  color: #374151;
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.deposit-amounts {
+  margin-bottom: 1rem;
+}
+
+.amount-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.amount-item .label {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.amount-item .value {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.deposit-meta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.deposit-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.action-btn.withdraw {
+  background-color: #f97316;
+  color: white;
+}
+
+.action-btn.withdraw:hover {
+  background-color: #ea580c;
+}
+
+.action-btn.details {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.action-btn.details:hover {
+  background-color: #e5e7eb;
+}
+
+/* New deposit form */
+.new-deposit-form {
+  padding: 1.5rem;
+}
+
+.bank-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.bank-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 1rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  transition: border-color 0.2s;
+}
+
+.bank-option input[type="radio"] {
+  margin-top: 0.25rem;
+}
+
+.bank-option:hover {
+  border-color: #3b82f6;
+}
+
+.bank-option input[type="radio"]:checked + .bank-card {
+  border-color: #3b82f6;
+  background-color: #eff6ff;
+}
+
+.bank-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  flex: 1;
+}
+
+.bank-card .bank-icon {
+  font-size: 2rem;
+}
+
+.bank-card h4 {
+  margin-bottom: 0.5rem;
+  color: #1f2937;
+}
+
+.bank-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.bank-card li {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.form-actions button {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.form-actions button:first-child {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.form-actions button:first-child:hover {
+  background-color: #e5e7eb;
+}
+
+/* Deposit details modal */
+.deposit-details {
+  padding: 1.5rem;
+}
+
+.summary-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.summary-item:last-child {
+  border-bottom: none;
+}
+
+.summary-item .label {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.summary-item .value {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.status-value {
+  font-weight: 600;
+}
+
+.amount-breakdown {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 8px;
+}
+
+.breakdown-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+}
+
+.forecast-section {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background-color: #f9fafb;
+  border-radius: 8px;
+}
+
+.forecast-section h4 {
+  margin-bottom: 1rem;
+  color: #1f2937;
+}
+
+.forecast-values {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.forecast-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.forecast-item span:first-child {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.forecast-item span:last-child {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.actions-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .deposits-grid {
+    grid-template-columns: 1fr;
+    padding: 0 1rem 1rem;
+  }
+  
+  .user-actions {
+    flex-wrap: wrap;
+  }
+  
+  .bank-options {
+    flex-direction: column;
+  }
+  
+  .deposit-actions {
+    flex-direction: column;
+  }
+}
