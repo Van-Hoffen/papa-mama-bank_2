@@ -23,12 +23,12 @@ router.post('/register', (req, res) => {
   }
 
   // Validate role and bank consistency
-  if (role === 'mama-admin' && (!req.body.bank || req.body.bank !== 'mama')) {
-    return res.status(400).json({ error: 'Mama-admin must have bank=mama' });
+  if (role === 'admin' && req.body.bank) {
+    return res.status(400).json({ error: 'Super admin cannot have a bank assigned' });
   }
-  
-  if (role === 'papa-admin' && (!req.body.bank || req.body.bank !== 'papa')) {
-    return res.status(400).json({ error: 'Papa-admin must have bank=papa' });
+
+  if ((role === 'bank-admin' || role === 'mama-admin' || role === 'papa-admin') && !req.body.bank) {
+    return res.status(400).json({ error: 'Bank administrator must have a bank assigned' });
   }
   
   if (role === 'child' && req.body.bank) {
@@ -74,7 +74,7 @@ router.post('/login', (req, res) => {
   }
 
   const stmt = db.prepare(`
-    SELECT id, username, name, role, bank FROM users WHERE username = ?
+    SELECT id, username, password, name, role, bank FROM users WHERE username = ?
   `);
 
   stmt.get([username], (err, user) => {

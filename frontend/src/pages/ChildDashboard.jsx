@@ -20,6 +20,11 @@ const ChildDashboard = ({ user, onLogout }) => {
     amount: ''
   });
   const [selectedDeposit, setSelectedDeposit] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [bankSettings, setBankSettings] = useState({
+    mama: { interest_rate: 0.035, period_days: 14, min_amount: 1000, penalty_rate: 0.0, display_name: 'Мама-банк' },
+    papa: { interest_rate: 0.11, period_days: 30, min_amount: 2000, penalty_rate: 0.02, display_name: 'Папа-банк' }
+  });
 
   useEffect(() => {
     fetchDashboardData();
@@ -37,6 +42,15 @@ const ChildDashboard = ({ user, onLogout }) => {
       // Fetch stats
       const statsResponse = await axios.get(`/analytics/stats/${user.id}`);
       setStats(statsResponse.data);
+
+      // Fetch dynamic settings
+      const settingsResponse = await axios.get('/settings');
+      setBankSettings(settingsResponse.data);
+      
+      const bankKeys = Object.keys(settingsResponse.data);
+      if (bankKeys.length > 0) {
+        setNewDepositForm(prev => ({ ...prev, bank: bankKeys[0] }));
+      }
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Ошибка загрузки данных');
     } finally {
@@ -47,12 +61,14 @@ const ChildDashboard = ({ user, onLogout }) => {
   const handleCreateDeposit = async (e) => {
     e.preventDefault();
     try {
+      setSuccessMessage('');
       await axios.post('/deposits', {
         bank: newDepositForm.bank,
         amount: parseFloat(newDepositForm.amount)
       });
       setShowNewDepositModal(false);
-      setNewDepositForm({ bank: 'mama', amount: '' });
+      setNewDepositForm(prev => ({ ...prev, amount: '' }));
+      setSuccessMessage('Запрос на открытие вклада успешно отправлен взрослым на подтверждение!');
       fetchDashboardData(); // Refresh data
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Ошибка создания вклада');
@@ -61,22 +77,54 @@ const ChildDashboard = ({ user, onLogout }) => {
 
   const handleRequestWithdrawal = async (depositId) => {
     try {
+      setSuccessMessage('');
       await axios.post('/operations/request', {
         deposit_id: depositId,
         type: 'withdraw'
       });
+      setSuccessMessage('Запрос на досрочное закрытие вклада успешно отправлен на согласование!');
       fetchDashboardData(); // Refresh data
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Ошибка запроса снятия');
     }
   };
 
+  const handleApproveRateChange = async (depositId) => {
+    try {
+      setError('');
+      setSuccessMessage('');
+      const response = await axios.post(`/deposits/${depositId}/approve-rate-change`);
+      setSuccessMessage(response.data.message);
+      fetchDashboardData();
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Ошибка подтверждения условий');
+    }
+  };
+
+  const handleDeclineRateChange = async (depositId) => {
+    try {
+      setError('');
+      setSuccessMessage('');
+      const response = await axios.post(`/deposits/${depositId}/decline-rate-change`);
+      setSuccessMessage(response.data.message);
+      fetchDashboardData();
+    } catch (err) {
+      setError(err.response?.data?.error || err.message || 'Ошибка отклонения условий');
+    }
+  };
+
   const getBankColor = (bank) => {
-    return bank === 'mama' ? '#FF6B6B' : '#4ECDC4';
+    if (bank === 'mama') return '#FF6B6B';
+    if (bank === 'papa') return '#3B82F6';
+    if (bank === 'babushka') return '#10B981';
+    return '#8B5CF6';
   };
 
   const getBankIcon = (bank) => {
-    return bank === 'mama' ? '🏠' : '🏖️';
+    if (bank === 'mama') return '🏠';
+    if (bank === 'papa') return '🏖️';
+    if (bank === 'babushka') return '👵';
+    return '🏦';
   };
 
   const getStatusColor = (status) => {
@@ -123,6 +171,87 @@ const ChildDashboard = ({ user, onLogout }) => {
         <div className="error-banner">
           {error}
         </div>
+      )}
+
+      {successMessage && (
+        <div className="success-banner" style={{ backgroundColor: '#D1FAE5', color: '#065F46', padding: '12px 20px', borderRadius: '8px', margin: '15px auto', maxWidth: '1200px', fontWeight: 'bold', border: '1px solid #10B981', textAlign: 'center' }}>
+          {successMessage}
+        </div>
+      )}
+
+      {/* Pending Rate Changes Notifications */}
+      {deposits.filter(d => d.rate_change_status === 'pending_child_approval').length > 0 && (
+        <section className="rate-change-notifications" style={{ maxWidth: '1200px', margin: '20px auto', padding: '0 15px' }}>
+          <div className="rate-change-card" style={{ background: 'linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)', border: '1px solid #F59E0B', borderRadius: '12px', padding: '20px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)' }}>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#B45309', margin: '0 0 10px 0', fontSize: '1.25rem' }}>
+              📢 Новые условия по вашим вкладам!
+            </h2>
+            <p style={{ color: '#78350F', fontSize: '0.95rem', margin: '0 0 20px 0', lineHeight: '1.5' }}>
+              Взрослые обновили процентные ставки. Ваши ранее заработанные проценты будут зафиксированы и добавлены к телу вклада. Вы можете подтвердить переход или оставить прежние условия.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {deposits.filter(d => d.rate_change_status === 'pending_child_approval').map(deposit => {
+                const interestEarned = deposit.calculated_balance - deposit.amount;
+                return (
+                  <div key={deposit.id} style={{ backgroundColor: 'white', borderRadius: '8px', padding: '15px', border: '1px solid #FDE68A' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+                      <strong style={{ color: '#1F2937' }}>
+                        Вклад #{deposit.id} в "{bankSettings[deposit.bank]?.display_name || deposit.bank}"
+                      </strong>
+                      <span style={{ color: '#4B5563', fontSize: '0.9rem' }}>
+                        Создан {new Date(deposit.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '15px', fontSize: '0.9rem' }}>
+                      <div>
+                        <div style={{ color: '#6B7280' }}>Начальная сумма:</div>
+                        <strong style={{ color: '#111827' }}>{deposit.amount.toLocaleString()} ₽</strong>
+                      </div>
+                      <div>
+                        <div style={{ color: '#6B7280' }}>Накоплено процентов:</div>
+                        <strong style={{ color: '#10B981' }}>+{interestEarned.toFixed(2)} ₽</strong>
+                      </div>
+                      <div>
+                        <div style={{ color: '#6B7280' }}>Новое тело вклада:</div>
+                        <strong style={{ color: '#2563EB' }}>{deposit.calculated_balance.toLocaleString()} ₽</strong>
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', borderTop: '1px dashed #E5E7EB', paddingTop: '12px', marginBottom: '20px', fontSize: '0.9rem' }}>
+                      <div>
+                        <div style={{ color: '#6B7280' }}>Старые условия:</div>
+                        <div style={{ fontWeight: '500' }}>{(deposit.interest_rate * 100).toFixed(1)}% за {deposit.period_days} дней</div>
+                      </div>
+                      <div>
+                        <div style={{ color: '#6B7280' }}>Новые условия:</div>
+                        <div style={{ color: '#D97706', fontWeight: 'bold' }}>
+                          {(deposit.pending_interest_rate * 100).toFixed(1)}% за {deposit.pending_period_days} дней
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      <button 
+                        onClick={() => handleApproveRateChange(deposit.id)}
+                        style={{ backgroundColor: '#10B981', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                        onMouseOver={(e) => e.target.style.backgroundColor = '#059669'}
+                        onMouseOut={(e) => e.target.style.backgroundColor = '#10B981'}
+                      >
+                        Принять новые условия
+                      </button>
+                      <button 
+                        onClick={() => handleDeclineRateChange(deposit.id)}
+                        style={{ backgroundColor: 'white', color: '#4B5563', border: '1px solid #D1D5DB', borderRadius: '6px', padding: '8px 16px', fontSize: '0.85rem', fontWeight: 'bold', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                        onMouseOver={(e) => e.target.style.backgroundColor = '#F9FAFB'}
+                        onMouseOut={(e) => e.target.style.backgroundColor = 'white'}
+                      >
+                        Оставить прежние
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
       )}
 
       {/* Stats Cards */}
@@ -206,7 +335,7 @@ const ChildDashboard = ({ user, onLogout }) => {
                 <div className="deposit-header">
                   <div className="bank-info">
                     <span className="bank-icon">{getBankIcon(deposit.bank)}</span>
-                    <span className="bank-name">{deposit.bank === 'mama' ? 'Мама-банк' : 'Папа-банк'}</span>
+                    <span className="bank-name">{bankSettings[deposit.bank]?.display_name || deposit.bank}</span>
                   </div>
                   <span 
                     className="status-badge"
@@ -288,47 +417,33 @@ const ChildDashboard = ({ user, onLogout }) => {
               <div className="form-group">
                 <label>Выберите банк:</label>
                 <div className="bank-options">
-                  <label className="bank-option">
-                    <input
-                      type="radio"
-                      name="bank"
-                      value="mama"
-                      checked={newDepositForm.bank === 'mama'}
-                      onChange={(e) => setNewDepositForm({...newDepositForm, bank: e.target.value})}
-                    />
-                    <div className="bank-card">
-                      <span className="bank-icon">🏠</span>
-                      <div>
-                        <h4>Мама-банк</h4>
-                        <ul>
-                          <li>3.5% за 14 дней</li>
-                          <li>Минимум: 1000 ₽</li>
-                          <li>Нет штрафа за досрочный вывод</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </label>
-
-                  <label className="bank-option">
-                    <input
-                      type="radio"
-                      name="bank"
-                      value="papa"
-                      checked={newDepositForm.bank === 'papa'}
-                      onChange={(e) => setNewDepositForm({...newDepositForm, bank: e.target.value})}
-                    />
-                    <div className="bank-card">
-                      <span className="bank-icon">🏖️</span>
-                      <div>
-                        <h4>Папа-банк</h4>
-                        <ul>
-                          <li>11% за 30 дней</li>
-                          <li>Минимум: 2000 ₽</li>
-                          <li>-2% штраф за досрочный вывод</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </label>
+                  {Object.keys(bankSettings).map((bankKey) => {
+                    const settings = bankSettings[bankKey];
+                    return (
+                      <label key={bankKey} className="bank-option">
+                        <input
+                          type="radio"
+                          name="bank"
+                          value={bankKey}
+                          checked={newDepositForm.bank === bankKey}
+                          onChange={(e) => setNewDepositForm({...newDepositForm, bank: e.target.value})}
+                        />
+                        <div className="bank-card">
+                          <span className="bank-icon">
+                            {getBankIcon(bankKey)}
+                          </span>
+                          <div>
+                            <h4>{settings.display_name || bankKey}</h4>
+                            <ul>
+                              <li>{(settings.interest_rate * 100).toFixed(1)}% за {settings.period_days} дней</li>
+                              <li>Минимум: {settings.min_amount} ₽</li>
+                              <li>{settings.penalty_rate === 0 ? 'Нет штрафа за досрочный вывод' : `-${(settings.penalty_rate * 100).toFixed(1)}% штраф за досрочный вывод`}</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -339,8 +454,8 @@ const ChildDashboard = ({ user, onLogout }) => {
                   id="amount"
                   value={newDepositForm.amount}
                   onChange={(e) => setNewDepositForm({...newDepositForm, amount: e.target.value})}
-                  placeholder={`Минимум: ${newDepositForm.bank === 'mama' ? '1000' : '2000'} ₽`}
-                  min={newDepositForm.bank === 'mama' ? '1000' : '2000'}
+                  placeholder={`Минимум: ${bankSettings[newDepositForm.bank]?.min_amount || 0} ₽`}
+                  min={bankSettings[newDepositForm.bank]?.min_amount || 0}
                   required
                 />
               </div>
@@ -377,7 +492,7 @@ const ChildDashboard = ({ user, onLogout }) => {
                 <div className="summary-item">
                   <span className="label">Банк:</span>
                   <span className="value">
-                    {getBankIcon(selectedDeposit.bank)} {selectedDeposit.bank === 'mama' ? 'Мама-банк' : 'Папа-банк'}
+                    {getBankIcon(selectedDeposit.bank)} {bankSettings[selectedDeposit.bank]?.display_name || selectedDeposit.bank}
                   </span>
                 </div>
                 <div className="summary-item">

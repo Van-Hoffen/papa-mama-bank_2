@@ -29,15 +29,14 @@ router.get('/', authenticate, (req, res) => {
   let query;
   let params = [];
 
-  if (req.user.role === 'mama-admin' || req.user.role === 'papa-admin') {
-    // Admins can only see deposits from their own bank
-    if (req.user.role === 'mama-admin') {
+  if (req.user.role === 'admin' || req.user.role === 'mama-admin' || req.user.role === 'papa-admin' || req.user.role === 'bank-admin') {
+    if (req.user.role === 'admin') {
       if (childId) {
         query = `
           SELECT d.*, u.name as child_name
           FROM deposits d
           JOIN users u ON d.child_id = u.id
-          WHERE d.child_id = ? AND d.bank = 'mama'
+          WHERE d.child_id = ?
           ORDER BY d.created_at DESC
         `;
         params = [childId];
@@ -46,28 +45,30 @@ router.get('/', authenticate, (req, res) => {
           SELECT d.*, u.name as child_name
           FROM deposits d
           JOIN users u ON d.child_id = u.id
-          WHERE d.bank = 'mama'
           ORDER BY d.created_at DESC
         `;
       }
-    } else if (req.user.role === 'papa-admin') {
+    } else {
+      // Custom bank admin (mama, papa, babushka, etc.)
+      const adminBank = req.user.bank;
       if (childId) {
         query = `
           SELECT d.*, u.name as child_name
           FROM deposits d
           JOIN users u ON d.child_id = u.id
-          WHERE d.child_id = ? AND d.bank = 'papa'
+          WHERE d.child_id = ? AND d.bank = ?
           ORDER BY d.created_at DESC
         `;
-        params = [childId];
+        params = [childId, adminBank];
       } else {
         query = `
           SELECT d.*, u.name as child_name
           FROM deposits d
           JOIN users u ON d.child_id = u.id
-          WHERE d.bank = 'papa'
+          WHERE d.bank = ?
           ORDER BY d.created_at DESC
         `;
+        params = [adminBank];
       }
     }
   } else {
@@ -92,22 +93,9 @@ router.get('/', authenticate, (req, res) => {
       let calculatedBalance = deposit.current_balance;
       
       if (deposit.status === 'active') {
-        // Calculate interest based on the bank
         const daysSinceCreation = getDaysSince(deposit.created_at);
-        
-        if (deposit.bank === 'mama') {
-          // Mama bank: 3.5% every 14 days
-          const periodsCompleted = Math.floor(daysSinceCreation / 14);
-          const ratePerPeriod = 0.035;
-          
-          calculatedBalance = calculateCompoundInterest(deposit.amount, ratePerPeriod, periodsCompleted);
-        } else if (deposit.bank === 'papa') {
-          // Papa bank: 11% every 30 days
-          const periodsCompleted = Math.floor(daysSinceCreation / 30);
-          const ratePerPeriod = 0.11;
-          
-          calculatedBalance = calculateCompoundInterest(deposit.amount, ratePerPeriod, periodsCompleted);
-        }
+        const periodsCompleted = Math.floor(daysSinceCreation / deposit.period_days);
+        calculatedBalance = calculateCompoundInterest(deposit.amount, deposit.interest_rate, periodsCompleted);
       }
       
       return {
@@ -144,12 +132,10 @@ router.get('/:id', authenticate, (req, res) => {
     }
 
     // Check admin bank access
-    if (req.user.role === 'mama-admin' && deposit.bank !== 'mama') {
-      return res.status(403).json({ error: 'Access denied. This is not your bank!' });
-    }
-    
-    if (req.user.role === 'papa-admin' && deposit.bank !== 'papa') {
-      return res.status(403).json({ error: 'Access denied. This is not your bank!' });
+    if (req.user.role !== 'admin') {
+      if ((req.user.role === 'mama-admin' || req.user.role === 'papa-admin' || req.user.role === 'bank-admin') && deposit.bank !== req.user.bank) {
+        return res.status(403).json({ error: 'Access denied. This is not your bank!' });
+      }
     }
 
     // Calculate dynamic balance
@@ -157,20 +143,8 @@ router.get('/:id', authenticate, (req, res) => {
     
     if (deposit.status === 'active') {
       const daysSinceCreation = getDaysSince(deposit.created_at);
-      
-      if (deposit.bank === 'mama') {
-        // Mama bank: 3.5% every 14 days
-        const periodsCompleted = Math.floor(daysSinceCreation / 14);
-        const ratePerPeriod = 0.035;
-        
-        calculatedBalance = calculateCompoundInterest(deposit.amount, ratePerPeriod, periodsCompleted);
-      } else if (deposit.bank === 'papa') {
-        // Papa bank: 11% every 30 days
-        const periodsCompleted = Math.floor(daysSinceCreation / 30);
-        const ratePerPeriod = 0.11;
-        
-        calculatedBalance = calculateCompoundInterest(deposit.amount, ratePerPeriod, periodsCompleted);
-      }
+      const periodsCompleted = Math.floor(daysSinceCreation / deposit.period_days);
+      calculatedBalance = calculateCompoundInterest(deposit.amount, deposit.interest_rate, periodsCompleted);
     }
 
     // Get interest history
@@ -201,56 +175,128 @@ router.post('/', authenticate, authorizeRoles('child'), (req, res) => {
     return res.status(400).json({ error: 'Bank and amount are required' });
   }
 
-  if (bank !== 'mama' && bank !== 'papa') {
-    return res.status(400).json({ error: 'Bank must be either "mama" or "papa"' });
-  }
-
-  // Validate minimum amounts
-  if (bank === 'mama' && amount < 1000) {
-    return res.status(400).json({ error: 'Minimum deposit for Mama bank is 1000 ₽' });
-  }
-
-  if (bank === 'papa' && amount < 2000) {
-    return res.status(400).json({ error: 'Minimum deposit for Papa bank is 2000 ₽' });
-  }
-
-  // Set interest parameters based on bank
-  let interestRate, periodDays;
-  if (bank === 'mama') {
-    interestRate = 0.035; // 3.5% per period
-    periodDays = 14; // Every 14 days
-  } else {
-    interestRate = 0.11; // 11% per period
-    periodDays = 30; // Every 30 days
-  }
-
-  // Insert deposit with pending status
-  const stmt = db.prepare(`
-    INSERT INTO deposits (child_id, bank, amount, current_balance, interest_rate, period_days, status)
-    VALUES (?, ?, ?, ?, ?, ?, 'pending')
-  `);
-
-  stmt.run([req.user.id, bank, amount, amount, interestRate, periodDays], function(err) {
+  // Fetch bank settings dynamically from the database
+  db.get('SELECT * FROM bank_settings WHERE bank = ?', [bank], (err, settings) => {
     if (err) {
       return res.status(500).json({ error: 'Internal server error' });
     }
 
-    // Create a pending operation for approval
-    const opStmt = db.prepare(`
-      INSERT INTO operations (deposit_id, user_id, type, amount, status, notes)
-      VALUES (?, ?, 'open', ?, 'pending', 'Opening new deposit')
+    if (!settings) {
+      return res.status(404).json({ error: 'Выбранный банк не найден в системе' });
+    }
+
+    if (amount < settings.min_amount) {
+      return res.status(400).json({ error: `Минимальная сумма вклада для этого банка составляет ${settings.min_amount} ₽` });
+    }
+
+    const interestRate = settings.interest_rate;
+    const periodDays = settings.period_days;
+
+    // Insert deposit with pending status
+    const stmt = db.prepare(`
+      INSERT INTO deposits (child_id, bank, amount, current_balance, interest_rate, period_days, status)
+      VALUES (?, ?, ?, ?, ?, ?, 'pending')
     `);
 
-    opStmt.run([this.lastID, req.user.id, amount], function(err) {
+    stmt.run([req.user.id, bank, amount, amount, interestRate, periodDays], function(err) {
       if (err) {
         return res.status(500).json({ error: 'Internal server error' });
       }
 
-      res.status(201).json({
-        id: this.lastID,
-        message: 'Deposit request created successfully. Awaiting approval.'
+      // Create a pending operation for approval
+      const opStmt = db.prepare(`
+        INSERT INTO operations (deposit_id, user_id, type, amount, status, notes)
+        VALUES (?, ?, 'open', ?, 'pending', 'Opening new deposit')
+      `);
+
+      opStmt.run([this.lastID, req.user.id, amount], function(err) {
+        if (err) {
+          return res.status(500).json({ error: 'Internal server error' });
+        }
+
+        res.status(201).json({
+          id: this.lastID,
+          message: 'Deposit request created successfully. Awaiting approval.'
+        });
       });
     });
+  });
+});
+
+// Approve a pending rate change for a deposit (called by child)
+router.post('/:id/approve-rate-change', authenticate, authorizeRoles('child'), (req, res) => {
+  const depositId = req.params.id;
+
+  db.get('SELECT * FROM deposits WHERE id = ? AND child_id = ?', [depositId, req.user.id], (err, deposit) => {
+    if (err) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    if (!deposit) {
+      return res.status(404).json({ error: 'Deposit not found' });
+    }
+
+    if (deposit.rate_change_status !== 'pending_child_approval') {
+      return res.status(400).json({ error: 'No pending rate change for this deposit' });
+    }
+
+    const daysSinceCreation = getDaysSince(deposit.created_at);
+    const periodsCompleted = Math.floor(daysSinceCreation / deposit.period_days);
+    const calculatedBalance = calculateCompoundInterest(deposit.amount, deposit.interest_rate, periodsCompleted);
+    const interestEarned = calculatedBalance - deposit.amount;
+
+    db.serialize(() => {
+      // 1. If interest earned is greater than zero, log it and capitalize it
+      if (interestEarned > 0) {
+        db.run(`
+          INSERT INTO interest_log (deposit_id, interest_amount, new_balance)
+          VALUES (?, ?, ?)
+        `, [depositId, interestEarned, calculatedBalance]);
+      }
+
+      // 2. Update the deposit body and switch to new rates, resetting the timer to now
+      db.run(`
+        UPDATE deposits
+        SET amount = ?,
+            current_balance = ?,
+            interest_rate = ?,
+            period_days = ?,
+            created_at = CURRENT_TIMESTAMP,
+            last_interest_calc = CURRENT_TIMESTAMP,
+            pending_interest_rate = NULL,
+            pending_period_days = NULL,
+            rate_change_status = 'none'
+        WHERE id = ?
+      `, [calculatedBalance, calculatedBalance, deposit.pending_interest_rate, deposit.pending_period_days, depositId], function(err) {
+        if (err) {
+          return res.status(500).json({ error: 'Internal server error' });
+        }
+
+        res.json({
+          message: 'Новые условия вклада успешно подтверждены! Ранее накопленные проценты зафиксированы и добавлены к сумме вклада.',
+          new_balance: parseFloat(calculatedBalance.toFixed(2))
+        });
+      });
+    });
+  });
+});
+
+// Decline a pending rate change for a deposit (called by child)
+router.post('/:id/decline-rate-change', authenticate, authorizeRoles('child'), (req, res) => {
+  const depositId = req.params.id;
+
+  db.run(`
+    UPDATE deposits
+    SET pending_interest_rate = NULL,
+        pending_period_days = NULL,
+        rate_change_status = 'none'
+    WHERE id = ? AND child_id = ? AND rate_change_status = 'pending_child_approval'
+  `, [depositId, req.user.id], function(err) {
+    if (err) {
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+
+    res.json({ message: 'Вы отклонили изменение условий вклада. Вклад продолжает действовать по старой процентной ставке.' });
   });
 });
 
