@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { User, Lock, LogIn, Eye, EyeOff } from 'lucide-react';
 
 const Login = ({ onLogin }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [banks, setBanks] = useState([]);
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -14,6 +15,21 @@ const Login = ({ onLogin }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchBanks = async () => {
+      try {
+        const response = await axios.get('/settings');
+        setBanks(Object.keys(response.data).map(key => ({
+          id: key,
+          display_name: response.data[key].display_name || key
+        })));
+      } catch (err) {
+        console.error('Error fetching banks:', err);
+      }
+    };
+    fetchBanks();
+  }, []);
 
   const handleChange = (e) => {
     setFormData({
@@ -43,12 +59,12 @@ const Login = ({ onLogin }) => {
           throw new Error('Имя обязательно');
         }
 
-        if (formData.role === 'mama-admin' && formData.bank !== 'mama') {
-          throw new Error('Mama-admin должен иметь bank=mama');
+        if (formData.role === 'admin' && formData.bank) {
+          throw new Error('Главный администратор не может иметь банк');
         }
 
-        if (formData.role === 'papa-admin' && formData.bank !== 'papa') {
-          throw new Error('Papa-admin должен иметь bank=papa');
+        if ((formData.role === 'bank-admin' || formData.role === 'mama-admin' || formData.role === 'papa-admin') && !formData.bank) {
+          throw new Error('Необходимо выбрать банк для администратора');
         }
 
         if (formData.role === 'child' && formData.bank) {
@@ -168,12 +184,14 @@ const Login = ({ onLogin }) => {
                   onChange={handleChange}
                 >
                   <option value="child">Ребёнок</option>
+                  <option value="admin">Главный администратор (Все банки)</option>
+                  <option value="bank-admin">Администратор банка</option>
                   <option value="mama-admin">Мама-администратор</option>
                   <option value="papa-admin">Папа-администратор</option>
                 </select>
               </div>
 
-              {(formData.role === 'mama-admin' || formData.role === 'papa-admin') && (
+              {(formData.role === 'bank-admin' || formData.role === 'mama-admin' || formData.role === 'papa-admin') && (
                 <div className="form-group">
                   <label htmlFor="bank">Банк</label>
                   <select
@@ -181,11 +199,14 @@ const Login = ({ onLogin }) => {
                     name="bank"
                     value={formData.bank}
                     onChange={handleChange}
-                    required={formData.role === 'mama-admin' || formData.role === 'papa-admin'}
+                    required
                   >
                     <option value="">Выберите банк</option>
-                    <option value="mama">Мама-банк</option>
-                    <option value="papa">Папа-банк</option>
+                    {banks.map(bank => (
+                      <option key={bank.id} value={bank.id}>
+                        {bank.display_name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}
@@ -235,8 +256,9 @@ const Login = ({ onLogin }) => {
         <div className="demo-section">
           <h3>Демо-аккаунты:</h3>
           <div className="demo-creds">
-            <p><strong>Мама:</strong> mama_admin / password123</p>
-            <p><strong>Папа:</strong> papa_admin / password123</p>
+            <p><strong>Супер-админ:</strong> admin / admin123</p>
+            <p><strong>Мама-банк:</strong> mama_admin / password123</p>
+            <p><strong>Папа-банк:</strong> papa_admin / password123</p>
           </div>
         </div>
       </div>

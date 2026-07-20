@@ -4,10 +4,9 @@ import axios from 'axios';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import ChildDashboard from './pages/ChildDashboard';
-import './App.css';
 
 // Set base URL for API requests
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = '/api';
 
 axios.defaults.baseURL = API_BASE_URL;
 
@@ -67,7 +66,7 @@ function App() {
           path="/" 
           element={
             currentUser ? 
-              (currentUser.role === 'mama-admin' || currentUser.role === 'papa-admin' ? 
+              (currentUser.role === 'mama-admin' || currentUser.role === 'papa-admin' || currentUser.role === 'admin' ? 
                 <Navigate to="/admin" /> : 
                 <Navigate to="/child" />
               ) : 
@@ -78,7 +77,7 @@ function App() {
           path="/login" 
           element={
             currentUser ? 
-              (currentUser.role === 'mama-admin' || currentUser.role === 'papa-admin' ? 
+              (currentUser.role === 'mama-admin' || currentUser.role === 'papa-admin' || currentUser.role === 'admin' ? 
                 <Navigate to="/admin" /> : 
                 <Navigate to="/child" />
               ) : 
@@ -88,7 +87,7 @@ function App() {
         <Route 
           path="/admin" 
           element={
-            currentUser && (currentUser.role === 'mama-admin' || currentUser.role === 'papa-admin') ? 
+            currentUser && (currentUser.role === 'mama-admin' || currentUser.role === 'papa-admin' || currentUser.role === 'admin') ? 
               <AdminDashboard user={currentUser} onLogout={logout} /> : 
               <Navigate to="/login" />
           } 

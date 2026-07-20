@@ -80,35 +80,35 @@ router.post('/request', authenticate, (req, res) => {
 // Get pending operations for admins
 router.get('/pending', authenticate, (req, res) => {
   // Only admins can view pending operations
-  if (req.user.role !== 'mama-admin' && req.user.role !== 'papa-admin') {
+  if (req.user.role !== 'admin' && req.user.role !== 'mama-admin' && req.user.role !== 'papa-admin' && req.user.role !== 'bank-admin') {
     return res.status(403).json({ error: 'Access denied. Admin role required.' });
   }
 
   let query;
   let params = [];
 
-  if (req.user.role === 'mama-admin') {
-    // Mama admin sees only mama bank operations
+  if (req.user.role === 'admin') {
+    // Super admin sees all pending operations
     query = `
       SELECT o.*, d.bank, d.amount as deposit_amount, c.name as child_name
       FROM operations o
       JOIN deposits d ON o.deposit_id = d.id
       JOIN users c ON d.child_id = c.id
       WHERE o.status = 'pending' 
-      AND d.bank = 'mama'
       ORDER BY o.requested_at DESC
     `;
-  } else if (req.user.role === 'papa-admin') {
-    // Papa admin sees only papa bank operations
+  } else {
+    // Custom bank admin (mama, papa, babushka, etc.)
     query = `
       SELECT o.*, d.bank, d.amount as deposit_amount, c.name as child_name
       FROM operations o
       JOIN deposits d ON o.deposit_id = d.id
       JOIN users c ON d.child_id = c.id
       WHERE o.status = 'pending' 
-      AND d.bank = 'papa'
+      AND d.bank = ?
       ORDER BY o.requested_at DESC
     `;
+    params = [req.user.bank];
   }
 
   db.all(query, params, (err, rows) => {
@@ -125,7 +125,7 @@ router.post('/:id/approve', authenticate, (req, res) => {
   const operationId = req.params.id;
 
   // Only admins can approve operations
-  if (req.user.role !== 'mama-admin' && req.user.role !== 'papa-admin') {
+  if (req.user.role !== 'admin' && req.user.role !== 'mama-admin' && req.user.role !== 'papa-admin' && req.user.role !== 'bank-admin') {
     return res.status(403).json({ error: 'Access denied. Admin role required.' });
   }
 
@@ -145,9 +145,13 @@ router.post('/:id/approve', authenticate, (req, res) => {
     }
 
     // Check bank access
-    if ((req.user.role === 'mama-admin' && operation.deposit_bank !== 'mama') ||
-        (req.user.role === 'papa-admin' && operation.deposit_bank !== 'papa')) {
-      return res.status(403).json({ error: 'Access denied. This is not your bank!' });
+    if (req.user.role !== 'admin') {
+      if (operation.deposit_bank !== req.user.bank) {
+        return res.status(403).json({ 
+          error: "Недоступно. Это не ваш банк!",
+          allowed_bank: operation.deposit_bank 
+        });
+      }
     }
 
     // Handle different operation types
@@ -193,44 +197,49 @@ router.post('/:id/approve', authenticate, (req, res) => {
           return res.status(404).json({ error: 'Deposit not found' });
         }
 
-        let withdrawalAmount = deposit.current_balance;
-        let penaltyApplied = 0;
-
-        // Check if early withdrawal penalty applies
-        if (deposit.bank === 'papa') {
-          // Papa bank: 2% penalty for early withdrawal
-          if (getDaysSince(deposit.created_at) < 30) {
-            penaltyApplied = withdrawalAmount * 0.02;
-            withdrawalAmount -= penaltyApplied;
-          }
-        }
-        // Mama bank: no penalty for early withdrawal
-
-        // Update deposit status to closed
-        db.run(`
-          UPDATE deposits 
-          SET status = 'closed', closed_at = CURRENT_TIMESTAMP, current_balance = ?
-          WHERE id = ?
-        `, [withdrawalAmount, operation.deposit_id], (err) => {
+        // Fetch bank settings for the deposit's bank to apply dynamic penalties
+        db.get('SELECT * FROM bank_settings WHERE bank = ?', [deposit.bank], (err, settings) => {
           if (err) {
             return res.status(500).json({ error: 'Internal server error' });
           }
 
-          // Update operation status
+          let withdrawalAmount = deposit.current_balance;
+          let penaltyApplied = 0;
+
+          // Check if early withdrawal penalty applies dynamically
+          if (settings && settings.penalty_rate > 0) {
+            if (getDaysSince(deposit.created_at) < settings.period_days) {
+              penaltyApplied = withdrawalAmount * settings.penalty_rate;
+              withdrawalAmount -= penaltyApplied;
+            }
+          }
+
+          // Update deposit status to closed
           db.run(`
-            UPDATE operations 
-            SET status = 'approved', approved_by = ?, approved_at = CURRENT_TIMESTAMP
+            UPDATE deposits 
+            SET status = 'closed', closed_at = CURRENT_TIMESTAMP, current_balance = ?
             WHERE id = ?
-          `, [req.user.id, operationId], (err) => {
+          `, [withdrawalAmount, operation.deposit_id], (err) => {
             if (err) {
               return res.status(500).json({ error: 'Internal server error' });
             }
 
-            res.json({ 
-              status: 'approved',
-              actual_amount: withdrawalAmount,
-              penalty_applied: penaltyApplied,
-              message: 'Withdrawal processed successfully' 
+            // Update operation status
+            db.run(`
+              UPDATE operations 
+              SET status = 'approved', approved_by = ?, approved_at = CURRENT_TIMESTAMP
+              WHERE id = ?
+            `, [req.user.id, operationId], (err) => {
+              if (err) {
+                return res.status(500).json({ error: 'Internal server error' });
+              }
+
+              res.json({ 
+                status: 'approved',
+                actual_amount: withdrawalAmount,
+                penalty_applied: penaltyApplied,
+                message: 'Withdrawal processed successfully' 
+              });
             });
           });
         });
@@ -260,7 +269,7 @@ router.post('/:id/reject', authenticate, (req, res) => {
   const operationId = req.params.id;
 
   // Only admins can reject operations
-  if (req.user.role !== 'mama-admin' && req.user.role !== 'papa-admin') {
+  if (req.user.role !== 'admin' && req.user.role !== 'mama-admin' && req.user.role !== 'papa-admin' && req.user.role !== 'bank-admin') {
     return res.status(403).json({ error: 'Access denied. Admin role required.' });
   }
 
@@ -280,9 +289,13 @@ router.post('/:id/reject', authenticate, (req, res) => {
     }
 
     // Check bank access
-    if ((req.user.role === 'mama-admin' && operation.deposit_bank !== 'mama') ||
-        (req.user.role === 'papa-admin' && operation.deposit_bank !== 'papa')) {
-      return res.status(403).json({ error: 'Access denied. This is not your bank!' });
+    if (req.user.role !== 'admin') {
+      if (operation.deposit_bank !== req.user.bank) {
+        return res.status(403).json({ 
+          error: "Недоступно. Это не ваш банк!",
+          allowed_bank: operation.deposit_bank 
+        });
+      }
     }
 
     // Update operation status to rejected
