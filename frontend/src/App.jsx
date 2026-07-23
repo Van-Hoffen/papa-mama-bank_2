@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
@@ -21,9 +21,9 @@ function App() {
       // Verify token and get user data
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
       
-      axios.get('/auth/current-user')
+      axios.get('/auth/me')
         .then(response => {
-          setCurrentUser(response.data);
+          setCurrentUser(response.data.user);
         })
         .catch(error => {
           // Token might be invalid/expired, remove it
@@ -52,24 +52,24 @@ function App() {
 
   if (loading) {
     return (
-      <div className="app-loading">
-        <div className="spinner"></div>
-        <p>Загрузка...</p>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 text-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mb-4"></div>
+        <p className="text-slate-400 font-mono">Семейный Банк: Загрузка...</p>
       </div>
     );
   }
 
+  const isAdmin = currentUser && (currentUser.platformRole === 'global_admin' || currentUser.familyRole === 'family_admin');
+  const isChild = currentUser && currentUser.familyRole === 'child';
+
   return (
-    <div className="App">
+    <div className="App min-h-screen bg-slate-950 text-slate-100 font-sans antialiased">
       <Routes>
         <Route 
           path="/" 
           element={
             currentUser ? 
-              (currentUser.role === 'mama-admin' || currentUser.role === 'papa-admin' || currentUser.role === 'admin' ? 
-                <Navigate to="/admin" /> : 
-                <Navigate to="/child" />
-              ) : 
+              (isAdmin ? <Navigate to="/admin" /> : <Navigate to="/child" />) : 
               <Login onLogin={login} />
           } 
         />
@@ -77,17 +77,14 @@ function App() {
           path="/login" 
           element={
             currentUser ? 
-              (currentUser.role === 'mama-admin' || currentUser.role === 'papa-admin' || currentUser.role === 'admin' ? 
-                <Navigate to="/admin" /> : 
-                <Navigate to="/child" />
-              ) : 
+              (isAdmin ? <Navigate to="/admin" /> : <Navigate to="/child" />) : 
               <Login onLogin={login} />
           } 
         />
         <Route 
           path="/admin" 
           element={
-            currentUser && (currentUser.role === 'mama-admin' || currentUser.role === 'papa-admin' || currentUser.role === 'admin') ? 
+            isAdmin ? 
               <AdminDashboard user={currentUser} onLogout={logout} /> : 
               <Navigate to="/login" />
           } 
@@ -95,11 +92,12 @@ function App() {
         <Route 
           path="/child" 
           element={
-            currentUser && currentUser.role === 'child' ? 
+            isChild ? 
               <ChildDashboard user={currentUser} onLogout={logout} /> : 
               <Navigate to="/login" />
           } 
         />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </div>
   );

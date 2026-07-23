@@ -1,6 +1,6 @@
 const express = require('express');
 const { db } = require('../models/db');
-const { authenticate, authorizeRoles } = require('../middleware/auth');
+const { requireAuth, requireGlobalAdmin } = require('../middleware/auth');
 const router = express.Router();
 
 // Get all bank settings
@@ -18,7 +18,7 @@ router.get('/', (req, res) => {
 });
 
 // Create a new bank profile (Super Admin only)
-router.post('/', authenticate, authorizeRoles('admin'), (req, res) => {
+router.post('/', requireAuth, requireGlobalAdmin, (req, res) => {
   const { bank, display_name, interest_rate, period_days, min_amount, penalty_rate } = req.body;
 
   if (!bank || !display_name || interest_rate === undefined || period_days === undefined || min_amount === undefined || penalty_rate === undefined) {
@@ -54,17 +54,14 @@ router.post('/', authenticate, authorizeRoles('admin'), (req, res) => {
 });
 
 // Update specific bank settings
-router.put('/:bank', authenticate, (req, res) => {
+router.put('/:bank', requireAuth, (req, res) => {
   const { bank } = req.params;
   const { interest_rate, period_days, min_amount, penalty_rate } = req.body;
 
   // Authorize:
-  // - Global admin ('admin') can change any bank settings
-  // - Custom bank-admins can only change their assigned bank
-  if (req.user.role !== 'admin') {
-    if (req.user.bank !== bank) {
-      return res.status(403).json({ error: 'Access denied. You can only configure your assigned bank.' });
-    }
+  // - Global admin can change any bank settings
+  if (req.user.platformRole !== 'global_admin') {
+    return res.status(403).json({ error: 'Access denied. You can only configure bank settings as global admin.' });
   }
 
   // Validate fields
