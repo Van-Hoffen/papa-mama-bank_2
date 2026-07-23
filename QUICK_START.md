@@ -14,6 +14,38 @@
 
 ---
 
+## 🐳 Развёртывание через Docker
+
+Для наиболее быстрого запуска вы можете использовать готовый Docker-образ или собрать его локально из репозитория.
+
+### Запуск готового Docker-образа
+```bash
+docker run -d \
+  --name papa-mama-bank \
+  -p 3000:3000 \
+  -e JWT_SECRET="your-super-secret-key" \
+  -v papa_mama_bank_data:/app/data \
+  vanhoffen/papa-mama-bank:initial
+```
+
+### Сборка и запуск из исходников
+```bash
+# Сборка образа
+docker build -t vanhoffen/papa-mama-bank:initial .
+
+# Запуск контейнера с монтированием тома базы данных
+docker run -d \
+  --name papa-mama-bank \
+  -p 3000:3000 \
+  -e JWT_SECRET="your-super-secret-key" \
+  -v papa_mama_bank_data:/app/data \
+  vanhoffen/papa-mama-bank:initial
+```
+
+Приложение будет доступно по адресу `http://<IP_сервера>:3000`.
+
+---
+
 ## 1️⃣ Пошаговая установка (PM2 + Nginx)
 
 ### Шаг 1. Подготовка окружения и Node.js
