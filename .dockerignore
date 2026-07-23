@@ -1,0 +1,12 @@
+.git
+.gitignore
+node_modules
+frontend/node_modules
+frontend/dist
+backend/node_modules
+backend/bank.db
+*.db
+noneed
+.env
+.env.local
+npm-debug.log
