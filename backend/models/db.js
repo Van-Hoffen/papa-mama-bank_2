@@ -541,6 +541,58 @@ const initDB = async () => {
       console.error('Error backfilling owner_user_id:', e);
     }
 
+    // Self-healing migration for family_members check constraint (to support family_owner and family_adult)
+    try {
+      await dbRun('BEGIN TRANSACTION');
+      let needsMigrationFm = false;
+      try {
+        await dbRun(`
+          INSERT INTO family_members (id, family_id, user_id, role)
+          VALUES (-999, -999, -999, 'family_owner')
+        `);
+      } catch (err) {
+        if (err.message && err.message.includes('CHECK constraint failed')) {
+          needsMigrationFm = true;
+        }
+      }
+      await dbRun('ROLLBACK');
+
+      if (needsMigrationFm) {
+        console.log('Migrating family_members to support family_owner and family_adult roles...');
+        await dbRun('PRAGMA foreign_keys=OFF');
+        await dbRun('BEGIN TRANSACTION');
+        await dbRun('ALTER TABLE family_members RENAME TO family_members_old');
+        await dbRun(`
+          CREATE TABLE family_members (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            family_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            role TEXT NOT NULL CHECK(role IN ('family_owner', 'family_adult', 'family_admin', 'child')),
+            child_profile_id INTEGER,
+            joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(family_id, user_id),
+            FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE CASCADE,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+          )
+        `);
+        await dbRun(`
+          INSERT INTO family_members (
+            id, family_id, user_id, role, child_profile_id, joined_at, created_at
+          )
+          SELECT id, family_id, user_id, role, child_profile_id, joined_at, created_at
+          FROM family_members_old
+        `);
+        await dbRun('DROP TABLE family_members_old');
+        await dbRun('COMMIT');
+        await dbRun('PRAGMA foreign_keys=ON');
+        console.log('Successfully migrated family_members check constraints.');
+      }
+    } catch (e) {
+      console.error('Error migrating family_members check constraints:', e);
+      try { await dbRun('ROLLBACK'); } catch (_) {}
+    }
+
     // Migrate family_members roles (family_admin -> family_owner or family_adult)
     try {
       const allMembers = await dbAll(`

@@ -5,11 +5,34 @@ const fs = require('fs');
 const backendDir = path.join(__dirname, 'backend');
 const frontendDir = path.join(__dirname, 'frontend');
 
-// Helper to install dependencies if node_modules doesn't exist
+// Helper to install dependencies if node_modules doesn't exist or if packages are missing
 function installDeps(dir) {
-  if (!fs.existsSync(path.join(dir, 'node_modules'))) {
+  const nodeModulesPath = path.join(dir, 'node_modules');
+  if (!fs.existsSync(nodeModulesPath)) {
     console.log(`Installing dependencies in ${dir}...`);
     require('child_process').execSync('npm install', { cwd: dir, stdio: 'inherit' });
+    return;
+  }
+  
+  try {
+    const pkgPath = path.join(dir, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+      let hasMissing = false;
+      for (const dep of Object.keys(deps)) {
+        if (!fs.existsSync(path.join(nodeModulesPath, dep))) {
+          console.log(`Missing dependency '${dep}' in ${dir}/node_modules. Running npm install...`);
+          hasMissing = true;
+          break;
+        }
+      }
+      if (hasMissing) {
+        require('child_process').execSync('npm install', { cwd: dir, stdio: 'inherit' });
+      }
+    }
+  } catch (err) {
+    console.error(`Error checking packages in ${dir}:`, err);
   }
 }
 
