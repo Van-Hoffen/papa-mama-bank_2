@@ -187,12 +187,12 @@ sudo certbot --nginx -d your-domain.com
 
 При первом запуске бэкенд автоматически создает SQLite базу данных `backend/bank.db` и инициализирует начальные учётные записи:
 
-| Логин | Пароль | Роль | Описание |
+| Логин / Email | Пароль | Роль | Описание |
 | :--- | :--- | :--- | :--- |
-| **`admin`** | `admin123` | Global Admin | Полные права управления системой |
-| **`mama_admin`** | `password123` | Bank Admin | Администратор Мама-Банка |
-| **`papa_admin`** | `password123` | Bank Admin | Администратор Папа-Банка |
-| **`ivan`** | `password123` | Child | Вкладчик (ребёнок) |
+| **`platform-admin@example.test`** | `ChangeMe123!` | Global Admin | Глобальный администратор платформы |
+| **`ivanov.parent@example.test`** | `FamilyAdmin123!` | Family Admin | Администратор семьи (Папа Иванов) |
+| **`ivanov_masha`** | `Child123!` | Child | Ребёнок-вкладчик (Маша) |
+| **`ivanov_petya`** | `Child123!` | Child | Ребёнок-вкладчик (Петя) |
 
 > ⚠️ **Важно:** После первого входа смените пароль администратора в панели управления!
 

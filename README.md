@@ -107,12 +107,12 @@ npm run dev
 
 После запуска приложения автоматически создаются готовые демо-учётные записи:
 
-| Логин | Пароль | Роль | Описание |
+| Логин / Email | Пароль | Роль | Описание |
 | :--- | :--- | :--- | :--- |
-| `admin` | `admin123` | Global Admin | Полный доступ ко всем банкам и настройкам |
-| `mama_admin` | `password123` | Bank Admin | Администратор Мама-Банка |
-| `papa_admin` | `password123` | Bank Admin | Администратор Папа-Банка |
-| `ivan` | `password123` | Child | Учётная запись ребёнка (вкладчик) |
+| **`platform-admin@example.test`** | `ChangeMe123!` | Global Admin | Глобальный администратор платформы |
+| **`ivanov.parent@example.test`** | `FamilyAdmin123!` | Family Admin | Администратор семьи (Папа Иванов) |
+| **`ivanov_masha`** | `Child123!` | Child | Ребёнок-вкладчик (Маша) |
+| **`ivanov_petya`** | `Child123!` | Child | Ребёнок-вкладчик (Петя) |
 
 ---
 
