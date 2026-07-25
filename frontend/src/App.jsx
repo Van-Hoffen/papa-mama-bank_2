@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import axios from 'axios';
+import i18n from './i18n';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
 import ChildDashboard from './pages/ChildDashboard';
+import ServiceAdminAudit from './pages/ServiceAdminAudit';
 
 // Set base URL for API requests
 const API_BASE_URL = '/api';
@@ -14,6 +16,16 @@ function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Sync language when currentUser loads or updates
+  useEffect(() => {
+    if (currentUser && currentUser.preferredLocale) {
+      if (['ru', 'en'].includes(currentUser.preferredLocale)) {
+        i18n.changeLanguage(currentUser.preferredLocale);
+        localStorage.setItem('app_language', currentUser.preferredLocale);
+      }
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     // Check if user is logged in by checking for token in localStorage
     const token = localStorage.getItem('token');
@@ -23,7 +35,12 @@ function App() {
       
       axios.get('/auth/me')
         .then(response => {
-          setCurrentUser(response.data.user);
+          const user = response.data.user;
+          setCurrentUser(user);
+          if (user?.preferredLocale && ['ru', 'en'].includes(user.preferredLocale)) {
+            i18n.changeLanguage(user.preferredLocale);
+            localStorage.setItem('app_language', user.preferredLocale);
+          }
         })
         .catch(error => {
           // Token might be invalid/expired, remove it
@@ -59,7 +76,9 @@ function App() {
     );
   }
 
-  const isAdmin = currentUser && (currentUser.platformRole === 'global_admin' || currentUser.familyRole === 'family_admin');
+  const isServiceAdmin = currentUser && (currentUser.platformRole === 'global_admin' || currentUser.platformRole === 'service_admin');
+  const isFamilyAdult = currentUser && ['family_owner', 'family_adult', 'family_admin'].includes(currentUser.familyRole);
+  const isAdmin = isServiceAdmin || isFamilyAdult;
   const isChild = currentUser && currentUser.familyRole === 'child';
 
   return (
@@ -87,6 +106,14 @@ function App() {
             isAdmin ? 
               <AdminDashboard user={currentUser} onLogout={logout} /> : 
               <Navigate to="/login" />
+          } 
+        />
+        <Route 
+          path="/service-admin/audit" 
+          element={
+            isServiceAdmin ? 
+              <ServiceAdminAudit user={currentUser} onLogout={logout} /> : 
+              <Navigate to="/admin" />
           } 
         />
         <Route 

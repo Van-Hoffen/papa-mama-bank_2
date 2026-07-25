@@ -1,0 +1,37 @@
+{
+  "title": "Семейные банки",
+  "createTitle": "Создание семейного банка",
+  "editTitle": "Редактирование банка",
+  "fields": {
+    "name": "Название банка",
+    "description": "Описание",
+    "color": "Цвет оформления",
+    "icon": "Иконка (эмодзи)",
+    "interestRate": "Процентная ставка (%)",
+    "periodDays": "Период начисления (дней)",
+    "minimumDeposit": "Минимальный вклад (₽)",
+    "maxLimitPerChild": "Лимит на ребёнка (₽)",
+    "earlyWithdrawalPenalty": "Штраф за раннее снятие (%)",
+    "minimumHoldingDays": "Минимальный срок (дней)",
+    "allowTopUp": "Разрешить самостоятельное пополнение",
+    "minTopUp": "Мин. сумма пополнения (₽)",
+    "maxTopUp": "Макс. сумма пополнения (₽)",
+    "maxDepositBalance": "Предел баланса вклада (₽)",
+    "accrualMode": "Режим начисления процентов"
+  },
+  "accrualModes": {
+    "whole_balance_on_schedule": "Простой (от всего баланса)",
+    "per_tranche_holding": "Реалистичный (по траншам)"
+  },
+  "earlyWithdrawalPolicies": {
+    "keep_earned_interest": "Сохранять уже начисленные проценты",
+    "lose_all_interest": "Сжигать все проценты при досрочном снятии"
+  },
+  "card": {
+    "ratePerPeriod": "{{rate}}% за {{days}} дн.",
+    "minDeposit": "Мин. вклад: {{amount}}",
+    "createdBy": "Создал: {{name}}",
+    "statusActive": "Активен",
+    "statusInactive": "Заархивирован"
+  }
+}

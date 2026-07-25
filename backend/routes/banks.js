@@ -1,6 +1,7 @@
 const express = require('express');
 const { db, dbGet, dbRun, dbAll } = require('../models/db');
 const { requireAuth, requireFamilyAdmin, requireFamilyMembership } = require('../middleware/auth');
+const { recordAuditEvent } = require('../utils/auditLogger');
 
 const router = express.Router();
 
@@ -110,11 +111,14 @@ router.post('/', requireAuth, requireFamilyAdmin, requireFamilyMembership, async
 
     const newBankId = result.lastID;
 
-    // Audit Log
-    await dbRun(`
-      INSERT INTO audit_logs (family_id, actor_user_id, action, entity_type, entity_id, reason)
-      VALUES (?, ?, 'create_bank', 'bank', ?, ?)
-    `, [req.user.familyId, req.user.id, newBankId, `Создан новый банк: ${name}`]);
+    await recordAuditEvent({
+      req,
+      familyId: req.user.familyId,
+      eventType: 'bank_created',
+      targetType: 'bank',
+      targetId: newBankId,
+      metadata: { name, interestRateBps: parseInt(interestRateBps, 10), periodDays: parseInt(periodDays, 10) }
+    });
 
     return res.status(201).json({
       success: true,

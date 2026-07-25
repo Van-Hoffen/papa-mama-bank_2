@@ -1,0 +1,37 @@
+{
+  "title": "Family Banks",
+  "createTitle": "Create Family Bank",
+  "editTitle": "Edit Bank",
+  "fields": {
+    "name": "Bank Name",
+    "description": "Description",
+    "color": "Brand Color",
+    "icon": "Icon (Emoji)",
+    "interestRate": "Interest Rate (%)",
+    "periodDays": "Accrual Period (Days)",
+    "minimumDeposit": "Minimum Deposit (₽)",
+    "maxLimitPerChild": "Limit per Child (₽)",
+    "earlyWithdrawalPenalty": "Early Withdrawal Penalty (%)",
+    "minimumHoldingDays": "Minimum Holding Term (Days)",
+    "allowTopUp": "Allow Self Top-up",
+    "minTopUp": "Min. Top-up Amount (₽)",
+    "maxTopUp": "Max. Top-up Amount (₽)",
+    "maxDepositBalance": "Deposit Balance Limit (₽)",
+    "accrualMode": "Interest Accrual Mode"
+  },
+  "accrualModes": {
+    "whole_balance_on_schedule": "Simple (on whole balance)",
+    "per_tranche_holding": "Realistic (per tranche)"
+  },
+  "earlyWithdrawalPolicies": {
+    "keep_earned_interest": "Keep already earned interest",
+    "lose_all_interest": "Forfeit all interest on early closure"
+  },
+  "card": {
+    "ratePerPeriod": "{{rate}}% per {{days}} days",
+    "minDeposit": "Min. deposit: {{amount}}",
+    "createdBy": "Created by: {{name}}",
+    "statusActive": "Active",
+    "statusInactive": "Archived"
+  }
+}

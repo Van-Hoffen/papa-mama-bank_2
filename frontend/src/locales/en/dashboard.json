@@ -1,0 +1,22 @@
+{
+  "welcome": "Welcome, {{name}}!",
+  "familySummary": "Summary for family '{{familyName}}'",
+  "stats": {
+    "totalDeposits": "Total in Deposits",
+    "activeDeposits": "Active Deposits",
+    "earnedInterest": "Earned Interest",
+    "pendingRequests": "Pending Requests",
+    "childrenCount": "Children in Family"
+  },
+  "sections": {
+    "myDeposits": "My Deposits",
+    "availableBanks": "Available Banks",
+    "recentOperations": "Recent Operations",
+    "pendingApproval": "Requires Decision"
+  },
+  "quickActions": {
+    "openDeposit": "Open New Deposit",
+    "addReward": "Reward Child",
+    "createBank": "Create Bank"
+  }
+}

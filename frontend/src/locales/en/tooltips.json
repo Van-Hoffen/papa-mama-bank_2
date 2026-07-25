@@ -1,0 +1,174 @@
+{
+  "auth": {
+    "login": {
+      "title": "Email or Username",
+      "body": "Adults log in with their email address. Children use a unique username within the family."
+    },
+    "password": {
+      "title": "Password",
+      "body": "Password must contain at least 10 characters to secure your family space."
+    },
+    "familyName": {
+      "title": "Family Name",
+      "body": "Displayed on the home dashboard. For example: 'Ivanov Family'."
+    },
+    "familySlug": {
+      "title": "Family Code",
+      "body": "A unique short code used by children to sign in. Example: ivanov."
+    },
+    "timezone": {
+      "title": "Timezone",
+      "body": "Used for precise interest calculation and display times in audit logs."
+    }
+  },
+  "profile": {
+    "preferredLocale": {
+      "title": "Interface Language",
+      "body": "Choose language for buttons, menus, tooltips, and system messages."
+    }
+  },
+  "bankForm": {
+    "name": {
+      "title": "Bank Name",
+      "body": "Helps the child distinguish this bank from others. E.g. 'Mom's Bank' or 'Bicycle Fund'."
+    },
+    "description": {
+      "title": "Short Description",
+      "body": "Optional explanation of why the bank was created and its terms."
+    },
+    "interestRate": {
+      "title": "Interest Rate",
+      "body": "Percentage added to the deposit per accrual period. E.g. at 4% rate and 1,000 ₽ balance, interest will yield 1,040 ₽."
+    },
+    "interestPeriodDays": {
+      "title": "Accrual Period",
+      "body": "How many days pass between interest accruals. With 14 days, interest compounds every two weeks."
+    },
+    "minimumDeposit": {
+      "title": "Minimum Deposit Amount",
+      "body": "A child cannot create a deposit with less than this amount."
+    },
+    "maxLimitPerChild": {
+      "title": "Limit per Child",
+      "body": "Maximum total balance a child can keep across deposits in this bank."
+    },
+    "earlyWithdrawalPenalty": {
+      "title": "Early Withdrawal Penalty",
+      "body": "If closed before the minimum term, the bank retains this percentage. An exact breakdown is displayed prior to confirmation."
+    },
+    "minimumHoldingDays": {
+      "title": "Minimum Term",
+      "body": "Number of days money must stay in the deposit to withdraw without penalty."
+    },
+    "allowTopUp": {
+      "title": "Allow Top-up",
+      "body": "If enabled, the child can submit top-up requests to adults for open deposits."
+    },
+    "minTopUp": {
+      "title": "Minimum Top-up Amount",
+      "body": "Top-up requests below this amount cannot be submitted."
+    },
+    "maxTopUp": {
+      "title": "Maximum Top-up Amount",
+      "body": "Single top-up requests cannot exceed this amount."
+    },
+    "maxDepositBalance": {
+      "title": "Deposit Balance Limit",
+      "body": "Maximum balance for a single deposit including initial deposit, top-ups, and interest."
+    },
+    "accrualMode": {
+      "title": "Interest Accrual Mode",
+      "body": "Simple: interest calculates on the full balance on the accrual date. Realistic: each top-up compounds after its own period from approval."
+    },
+    "brandIcon": {
+      "title": "Bank Icon",
+      "body": "Emoji shown to the child on bank and deposit cards."
+    },
+    "brandColor": {
+      "title": "Brand Color",
+      "body": "Helps distinguish the bank in lists and charts. Does not affect calculations."
+    }
+  },
+  "depositForm": {
+    "amount": {
+      "title": "Deposit Amount",
+      "body": "Initial principal starting the deposit. Must comply with minimum deposit and bank limits."
+    },
+    "goalName": {
+      "title": "Goal Title",
+      "body": "What the child is saving for: e.g. 'New Bicycle' or 'Lego Set'."
+    },
+    "goalAmount": {
+      "title": "Goal Target Amount",
+      "body": "The system displays progress towards this target."
+    },
+    "goalDate": {
+      "title": "Target Date",
+      "body": "Optional target date. Does not affect interest rate."
+    }
+  },
+  "topUpForm": {
+    "amount": {
+      "title": "Top-up Amount",
+      "body": "Amount the child wants to add to an active deposit."
+    }
+  },
+  "rewardForm": {
+    "amount": {
+      "title": "Reward Amount",
+      "body": "Direct bonus from an adult credited immediately to the deposit."
+    },
+    "reason": {
+      "title": "Reward Reason",
+      "body": "E.g.: 'For great school grades' or 'Helping around the house'."
+    }
+  },
+  "closeDeposit": {
+    "confirm": {
+      "title": "Closing Deposit",
+      "body": "Closing early may incur a penalty fee according to bank terms."
+    }
+  },
+  "simulator": {
+    "amount": {
+      "title": "Starting Principal",
+      "body": "Starting capital for calculation."
+    },
+    "rate": {
+      "title": "Interest Rate",
+      "body": "Yield percentage per period."
+    },
+    "period": {
+      "title": "Period",
+      "body": "Frequency of interest payments in days."
+    },
+    "months": {
+      "title": "Simulation Horizon",
+      "body": "Total planning period in months."
+    }
+  },
+  "family": {
+    "inviteEmail": {
+      "title": "Adult's Email",
+      "body": "An invitation link will be sent to this email address."
+    },
+    "childUsername": {
+      "title": "Child's Username",
+      "body": "Used alongside the family code to sign in."
+    },
+    "transferOwner": {
+      "title": "Transfer Family Ownership",
+      "body": "The family owner controls family settings and administrator rights. Irreversible action!"
+    }
+  },
+  "audit": {
+    "filterDate": {
+      "title": "Date Filter",
+      "body": "Allows reviewing security audit events for a specific timeframe."
+    },
+    "filterEvent": {
+      "title": "Event Type",
+      "body": "Select specific events: bank creation, top-up, login, etc."
+    }
+  }
+}

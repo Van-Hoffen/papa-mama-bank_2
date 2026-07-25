@@ -16,7 +16,7 @@ const requireAuth = async (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-super-secret-key');
     
     // Fetch full fresh info from database
-    const user = await dbGet(`SELECT id, email, username, display_name, platform_role, status, must_change_password FROM users WHERE id = ?`, [decoded.id]);
+    const user = await dbGet(`SELECT id, email, username, display_name, platform_role, status, must_change_password, preferred_locale FROM users WHERE id = ?`, [decoded.id]);
     
     if (!user) {
       return res.status(401).json({ error: 'Пользователь не найден.' });
@@ -36,13 +36,14 @@ const requireAuth = async (req, res, next) => {
       username: user.username,
       displayName: user.display_name,
       platformRole: user.platform_role,
-      mustChangePassword: user.must_change_password
+      mustChangePassword: user.must_change_password,
+      preferredLocale: user.preferred_locale || 'ru'
     };
 
     // If platform role is user, load family membership
     if (user.platform_role === 'user') {
       const membership = await dbGet(`
-        SELECT fm.family_id, fm.role, fm.child_profile_id, f.timezone, f.currency_code, f.name as family_name, f.status as family_status
+        SELECT fm.family_id, fm.role, fm.child_profile_id, f.timezone, f.currency_code, f.name as family_name, f.status as family_status, f.owner_user_id
         FROM family_members fm
         JOIN families f ON fm.family_id = f.id
         WHERE fm.user_id = ?
@@ -53,7 +54,17 @@ const requireAuth = async (req, res, next) => {
           return res.status(403).json({ error: 'Доступ заблокирован. Ваша семья заблокирована администратором.' });
         }
         req.user.familyId = membership.family_id;
-        req.user.familyRole = membership.role; // 'family_admin' | 'child'
+        
+        let resolvedRole = membership.role;
+        if (resolvedRole !== 'child') {
+          if (membership.owner_user_id === user.id) {
+            resolvedRole = 'family_owner';
+          } else if (resolvedRole === 'family_admin') {
+            resolvedRole = 'family_owner'; // default legacy admin as owner if owner_user_id not set
+          }
+        }
+
+        req.user.familyRole = resolvedRole; // 'family_owner' | 'family_adult' | 'child'
         req.user.childProfileId = membership.child_profile_id;
         req.user.timezone = membership.timezone;
         req.user.currencyCode = membership.currency_code;
@@ -68,23 +79,47 @@ const requireAuth = async (req, res, next) => {
 };
 
 /**
- * Limits access to global platform admins.
+ * Limits access to global platform admins / service admins.
  */
 const requireGlobalAdmin = (req, res, next) => {
-  if (req.user?.platformRole !== 'global_admin') {
-    return res.status(403).json({ error: 'Доступ запрещен. Требуются права супер-администратора.' });
+  if (req.user?.platformRole === 'global_admin' || req.user?.platformRole === 'service_admin') {
+    return next();
   }
-  next();
+  return res.status(403).json({ error: 'Доступ запрещен. Требуются права супер-администратора.' });
+};
+
+const requireServiceAdmin = (req, res, next) => {
+  if (req.user?.platformRole === 'global_admin' || req.user?.platformRole === 'service_admin') {
+    return next();
+  }
+  return res.status(403).json({ error: 'Доступ запрещен. Требуются права сервисного администратора.' });
 };
 
 /**
- * Limits access to family administrators.
+ * Limits access to the family owner.
  */
-const requireFamilyAdmin = (req, res, next) => {
-  if (req.user?.platformRole === 'user' && req.user?.familyRole === 'family_admin') {
+const requireFamilyOwner = (req, res, next) => {
+  if (req.user?.platformRole === 'user' && (req.user?.familyRole === 'family_owner' || req.user?.familyRole === 'family_admin')) {
     return next();
   }
-  return res.status(403).json({ error: 'Доступ запрещен. Требуются права администратора семьи.' });
+  return res.status(403).json({ error: 'Доступ запрещен. Действие доступно только владельцу семьи.' });
+};
+
+/**
+ * Limits access to family adults (owner or adult).
+ */
+const requireFamilyAdult = (req, res, next) => {
+  if (req.user?.platformRole === 'user' && ['family_owner', 'family_adult', 'family_admin'].includes(req.user?.familyRole)) {
+    return next();
+  }
+  return res.status(403).json({ error: 'Доступ запрещен. Требуются права взрослого участника семьи.' });
+};
+
+/**
+ * Legacy alias - limits access to family administrators (owners or adults).
+ */
+const requireFamilyAdmin = (req, res, next) => {
+  return requireFamilyAdult(req, res, next);
 };
 
 /**
@@ -144,6 +179,9 @@ const checkSupportAccess = (familyIdParamName = 'familyId') => {
 module.exports = {
   requireAuth,
   requireGlobalAdmin,
+  requireServiceAdmin,
+  requireFamilyOwner,
+  requireFamilyAdult,
   requireFamilyAdmin,
   requireFamilyMembership,
   checkSupportAccess

@@ -1,0 +1,34 @@
+{
+  "title": "Deposits",
+  "openTitle": "Open Deposit",
+  "topUpTitle": "Top Up Deposit",
+  "closeTitle": "Early Deposit Closure",
+  "rewardTitle": "Reward from Adult",
+  "fields": {
+    "bank": "Select Bank",
+    "child": "Child",
+    "amount": "Deposit Amount (₽)",
+    "goalTitle": "Goal Title",
+    "goalTarget": "Target Amount (₽)",
+    "goalDate": "Target Date",
+    "goalNote": "Note for Goal",
+    "topUpAmount": "Top-up Amount (₽)",
+    "rewardAmount": "Reward Amount (₽)",
+    "reason": "Reason / Note"
+  },
+  "labels": {
+    "principal": "Initial Principal",
+    "currentBalance": "Current Balance",
+    "totalInterest": "Earned Interest",
+    "nextAccrual": "Next Accrual",
+    "holdingDaysLeft": "Days until penalty-free withdrawal",
+    "penaltyAmount": "Penalty Deducted",
+    "payoutAmount": "Net Payout Amount",
+    "progress": "Goal Progress"
+  },
+  "messages": {
+    "rewardedChild": "{{adultName}} topped up deposit by {{amount}}",
+    "earlyClosureWarning": "Attention! Closing before {{days}} days incurs a penalty of {{penalty}}%.",
+    "goalAchieved": "Goal achieved! Congratulations!"
+  }
+}

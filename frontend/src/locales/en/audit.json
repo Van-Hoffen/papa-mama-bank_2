@@ -1,0 +1,32 @@
+{
+  "title": "Audit Log",
+  "filters": {
+    "dateFrom": "Date From",
+    "dateTo": "Date To",
+    "eventType": "Event Type",
+    "actor": "Actor",
+    "allEvents": "All Events"
+  },
+  "columns": {
+    "time": "Time",
+    "actor": "Actor",
+    "event": "Event",
+    "target": "Target",
+    "details": "Details"
+  },
+  "eventTypes": {
+    "register_family": "Family Registration",
+    "verify_email": "Email Verification",
+    "auth_login_success": "Successful Login",
+    "auth_login_failed": "Failed Login",
+    "auth_logout": "User Logout",
+    "bank_create": "Bank Creation",
+    "bank_update": "Bank Update",
+    "deposit_open": "Deposit Opening",
+    "deposit_close": "Deposit Closure",
+    "deposit_topup": "Deposit Top-up",
+    "parent_reward": "Parent Reward",
+    "interest_accrued": "Interest Accrual",
+    "rate_change_proposal": "Rate Change Proposal"
+  }
+}

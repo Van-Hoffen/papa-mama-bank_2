@@ -1,0 +1,22 @@
+{
+  "welcome": "Добро пожаловать, {{name}}!",
+  "familySummary": "Сводка по семье «{{familyName}}»",
+  "stats": {
+    "totalDeposits": "Всего во вкладах",
+    "activeDeposits": "Активных вкладов",
+    "earnedInterest": "Начислено процентов",
+    "pendingRequests": "Заявок на рассмотрении",
+    "childrenCount": "Детей в семье"
+  },
+  "sections": {
+    "myDeposits": "Мои вклады",
+    "availableBanks": "Доступные банки",
+    "recentOperations": "Последние операции",
+    "pendingApproval": "Требуют решения"
+  },
+  "quickActions": {
+    "openDeposit": "Открыть новый вклад",
+    "addReward": "Поощрить ребёнка",
+    "createBank": "Создать банк"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "title": "Help & Educational Simulator",
+  "calculator": {
+    "title": "Interest Accrual Simulator",
+    "desc": "Calculate how much money will accumulate over time with different interest rates and periods.",
+    "amountLabel": "Initial Principal (₽)",
+    "rateLabel": "Interest Rate (%)",
+    "periodLabel": "Accrual Period (Days)",
+    "monthsLabel": "Accumulation Term (Months)",
+    "monthlyTopUpLabel": "Monthly Top-up (₽)",
+    "calculateBtn": "Calculate",
+    "resultTotal": "Total Accumulated:",
+    "resultInterest": "Interest Portion:"
+  }
+}

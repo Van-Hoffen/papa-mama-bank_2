@@ -1,0 +1,34 @@
+{
+  "title": "Депозиты и вклады",
+  "openTitle": "Открытие вклада",
+  "topUpTitle": "Пополнение вклада",
+  "closeTitle": "Досрочное закрытие вклада",
+  "rewardTitle": "Поощрение от взрослого",
+  "fields": {
+    "bank": "Выберите банк",
+    "child": "Ребёнок",
+    "amount": "Сумма вклада (₽)",
+    "goalTitle": "Название цели",
+    "goalTarget": "Целевая сумма (₽)",
+    "goalDate": "Желаемая дата достижения",
+    "goalNote": "Заметка к цели",
+    "topUpAmount": "Сумма пополнения (₽)",
+    "rewardAmount": "Сумма поощрения (₽)",
+    "reason": "Причина / Повод"
+  },
+  "labels": {
+    "principal": "Начальный взнос",
+    "currentBalance": "Текущий баланс",
+    "totalInterest": "Начислено процентов",
+    "nextAccrual": "Следующее начисление",
+    "holdingDaysLeft": "Дней до снятия без штрафа",
+    "penaltyAmount": "Удерживаемый штраф",
+    "payoutAmount": "Сумма к выплате на руки",
+    "progress": "Прогресс цели"
+  },
+  "messages": {
+    "rewardedChild": "{{adultName}} пополнил(а) вклад на {{amount}}",
+    "earlyClosureWarning": "Внимание! При закрытии раньше {{days}} дней удерживается штраф {{penalty}}%.",
+    "goalAchieved": "Цель достигнута! Поздравляем!"
+  }
+}

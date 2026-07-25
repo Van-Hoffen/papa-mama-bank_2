@@ -1,0 +1,22 @@
+{
+  "deposit": {
+    "minimumAmount": "Minimum deposit amount for this bank is {{amount}}.",
+    "maximumBalanceExceeded": "Maximum deposit balance exceeded — {{amount}}.",
+    "pendingRequestExists": "You already have a request awaiting adult approval.",
+    "notFound": "Deposit not found."
+  },
+  "bank": {
+    "notFound": "Bank not found.",
+    "slugExists": "A bank with this code already exists."
+  },
+  "auth": {
+    "invalidCredentials": "Invalid username or password.",
+    "emailNotVerified": "Email not verified. Please check your inbox.",
+    "accountBlocked": "Account blocked by administrator.",
+    "familyBlocked": "Your family space has been blocked by administrator."
+  },
+  "network": {
+    "offline": "No server connection. Please check your network and try again.",
+    "unknown": "Something went wrong. Please try again later."
+  }
+}

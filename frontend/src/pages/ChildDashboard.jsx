@@ -1,16 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { 
   DollarSign, TrendingUp, PiggyBank, Plus, Eye, Clock, BarChart3, LogOut, 
   RefreshCw, Check, X, AlertTriangle, Calendar, Info, Target, Trash2, Edit2, ShieldAlert,
-  Bell
+  Bell, User, Globe
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, 
   CartesianGrid, Legend, LineChart, Line, ReferenceLine 
 } from 'recharts';
+import HelpTooltip from '../components/HelpTooltip';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import ProfileModal from '../components/ProfileModal';
+import { formatMoney, formatNumber, formatPercent, formatDate, formatDateTime } from '../utils/formatters';
 
 const ChildDashboard = ({ user, onLogout }) => {
+  const { t, i18n } = useTranslation(['dashboard', 'common', 'banks', 'deposits', 'tooltips', 'errors']);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [deposits, setDeposits] = useState([]);
   const [stats, setStats] = useState({
     total_invested_kopecks: 0,
@@ -527,47 +534,69 @@ const ChildDashboard = ({ user, onLogout }) => {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-2xl">🧒</span>
-            <h1 className="text-2xl font-bold text-slate-100">Личный Кабинет</h1>
+            <h1 className="text-2xl font-bold text-slate-100">{t('common:nav.dashboard')}</h1>
           </div>
           <p className="text-sm text-slate-400">
-            Привет, <strong className="text-indigo-400">{user.displayName}</strong>! Пора копить и зарабатывать проценты!
+            {t('dashboard:childGreeting', { displayName: user.displayName })}
           </p>
         </div>
-        <div className="flex items-center gap-3 self-stretch sm:self-auto">
+        <div className="flex items-center gap-3 self-stretch sm:self-auto flex-wrap">
+          <LanguageSwitcher user={user} />
+
+          <button
+            type="button"
+            onClick={() => setShowProfileModal(true)}
+            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-700 text-slate-300 rounded-xl px-3.5 py-2 text-sm font-semibold transition cursor-pointer"
+            title={t('common:nav.profile')}
+          >
+            <User className="h-4 w-4 text-indigo-400" />
+            <span className="hidden md:inline">{user.displayName || user.username}</span>
+          </button>
+
           <button
             id="btn-refresh-child"
             onClick={fetchDashboardData}
-            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-700 text-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold transition"
+            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-700 text-slate-300 rounded-xl px-3.5 py-2 text-sm font-semibold transition cursor-pointer"
           >
             <RefreshCw className="h-4 w-4" />
-            <span>Обновить</span>
+            <span className="hidden sm:inline">{t('common:actions.refresh')}</span>
           </button>
+          
           <button
             id="btn-open-calculator"
             onClick={handleOpenCalculator}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-700 text-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold transition"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-700 text-slate-300 rounded-xl px-3.5 py-2 text-sm font-semibold transition cursor-pointer"
           >
             <span>🧮</span>
-            <span>Калькулятор вкладов</span>
+            <span>{t('common:nav.calculator')}</span>
           </button>
+
           <button
             id="btn-new-deposit"
             onClick={() => setShowNewDepositModal(true)}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-xl px-4 py-2.5 text-sm font-semibold transition shadow-lg shadow-indigo-600/20"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-xl px-3.5 py-2 text-sm font-semibold transition shadow-lg shadow-indigo-600/20 cursor-pointer"
           >
             <Plus className="h-4 w-4" />
-            <span>Новый Вклад</span>
+            <span>{t('deposits:openDeposit')}</span>
           </button>
+
           <button
             id="btn-logout"
             onClick={onLogout}
-            className="bg-slate-950 hover:bg-rose-950/40 hover:text-rose-400 text-slate-400 rounded-xl p-2.5 border border-slate-800 hover:border-rose-900 transition"
-            title="Выйти"
+            className="bg-slate-950 hover:bg-rose-950/40 hover:text-rose-400 text-slate-400 rounded-xl p-2.5 border border-slate-800 hover:border-rose-900 transition cursor-pointer"
+            title={t('common:actions.logout')}
           >
             <LogOut className="h-5 w-5" />
           </button>
         </div>
       </header>
+
+      {showProfileModal && (
+        <ProfileModal
+          user={user}
+          onClose={() => setShowProfileModal(false)}
+        />
+      )}
 
       {error && (
         <div className="bg-red-950/40 border border-red-800 text-red-300 text-sm p-4 rounded-xl flex items-start gap-2 animate-pulse">

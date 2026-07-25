@@ -1,0 +1,85 @@
+{
+  "app": {
+    "name": "Papa-Mama Bank",
+    "tagline": "Financial literacy for the whole family"
+  },
+  "actions": {
+    "add": "Add",
+    "create": "Create",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "archive": "Archive",
+    "restore": "Restore",
+    "cancel": "Cancel",
+    "close": "Close",
+    "refresh": "Refresh",
+    "back": "Back",
+    "next": "Next",
+    "confirm": "Confirm",
+    "approve": "Approve",
+    "reject": "Reject",
+    "send": "Send",
+    "apply": "Apply",
+    "reset": "Reset",
+    "logout": "Log out",
+    "login": "Log in",
+    "register": "Register",
+    "view": "View",
+    "topUp": "Top up",
+    "withdraw": "Withdraw",
+    "closeDeposit": "Close deposit",
+    "reward": "Reward",
+    "copy": "Copy",
+    "copied": "Copied!"
+  },
+  "status": {
+    "active": "Active",
+    "pending": "Pending approval",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "archived": "Archived",
+    "closed": "Closed",
+    "pending_open": "Pending opening",
+    "pending_close": "Pending closure",
+    "pending_child_approval": "Pending child decision",
+    "accepted": "Accepted",
+    "expired": "Expired"
+  },
+  "roles": {
+    "family_owner": "Family Owner",
+    "family_admin": "Family Administrator",
+    "family_adult": "Family Adult",
+    "child": "Child",
+    "global_admin": "Global Admin"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "banks": "Banks",
+    "deposits": "Deposits",
+    "children": "Children",
+    "adults": "Adults",
+    "family": "Family",
+    "analytics": "Analytics",
+    "calculator": "Simulator",
+    "auditLogs": "Audit Logs",
+    "notifications": "Notifications",
+    "settings": "Settings",
+    "profile": "Profile"
+  },
+  "language": {
+    "label": "Interface Language",
+    "ru": "Русский",
+    "en": "English",
+    "hint": "Selection takes effect immediately."
+  },
+  "a11y": {
+    "closeDialog": "Close window",
+    "openHelp": "Show tooltip",
+    "loading": "Loading",
+    "notifications": "Notifications"
+  },
+  "noData": "No data to display",
+  "loading": "Loading data...",
+  "unknown": "Unknown"
+}

@@ -1,21 +1,33 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { 
   Users, DollarSign, Clock, TrendingUp, RefreshCw, LogOut, Check, X, 
   Settings, Plus, Trash2, Shield, Calendar, ShieldAlert, Key, Save, Eye,
-  Archive, RotateCcw, AlertCircle, AlertTriangle
+  Archive, RotateCcw, AlertCircle, AlertTriangle, FileText, UserCheck, User, Globe
 } from 'lucide-react';
 import HelpTooltip from '../components/HelpTooltip';
 import ToastContainer from '../components/ToastContainer';
+import AdultsTab from '../components/AdultsTab';
+import AuditLogTab from '../components/AuditLogTab';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import ProfileModal from '../components/ProfileModal';
 import { BANK_HELP_TEXTS } from '../constants/bankHelpTexts';
+import { formatMoney, formatNumber, formatPercent, formatDate, formatDateTime } from '../utils/formatters';
 
 const EMOJI_PICKER_OPTIONS = ['🏦', '🐷', '💰', '💳', '🪙', '💎', '🌟', '🏰', '🚀', '👑', '🎯', '📈', '🏠', '🚗', '🎁'];
 
 const AdminDashboard = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState('operations'); // 'operations', 'banks', 'children', 'audit_logs', 'global_families'
+  const { t, i18n } = useTranslation(['dashboard', 'common', 'banks', 'deposits', 'auth', 'tooltips', 'errors']);
+  const navigate = useNavigate();
+  const isOwner = user?.familyRole === 'family_owner' || user?.familyRole === 'family_admin';
+  const isServiceAdmin = user?.platformRole === 'service_admin' || user?.platformRole === 'global_admin';
+  const [activeTab, setActiveTab] = useState('operations'); // 'operations', 'banks', 'children', 'adults', 'audit_logs', 'global_families'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Toast System State
   const [toasts, setToasts] = useState([]);
@@ -465,7 +477,7 @@ const AdminDashboard = ({ user, onLogout }) => {
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-2xl">👑</span>
-            <h1 className="text-2xl font-bold text-slate-100">Панель Управления</h1>
+            <h1 className="text-2xl font-bold text-slate-100">{t('common:nav.dashboard')}</h1>
           </div>
           <p className="text-sm text-slate-400">
             {user.platformRole === 'global_admin' ? (
@@ -473,30 +485,51 @@ const AdminDashboard = ({ user, onLogout }) => {
                 <Shield className="h-4 w-4" /> Администратор платформы (Support Access)
               </span>
             ) : (
-              <span>Семейный контроль для пространства <strong className="text-indigo-400">{user.familyName}</strong></span>
+              <span>{t('dashboard:familySummary', { familyName: user.familyName })}</span>
             )}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 self-stretch sm:self-auto">
+        <div className="flex items-center gap-3 self-stretch sm:self-auto flex-wrap">
+          <LanguageSwitcher user={user} />
+          
+          <button
+            type="button"
+            onClick={() => setShowProfileModal(true)}
+            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-700 text-slate-300 rounded-xl px-3.5 py-2 text-sm font-semibold transition cursor-pointer"
+            title={t('common:nav.profile')}
+          >
+            <User className="h-4 w-4 text-indigo-400" />
+            <span className="hidden md:inline">{user.displayName || user.username}</span>
+          </button>
+
           <button
             id="btn-refresh-admin"
             onClick={fetchData}
-            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-700 text-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold transition"
+            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-700 text-slate-300 rounded-xl px-3.5 py-2 text-sm font-semibold transition cursor-pointer"
           >
             <RefreshCw className="h-4 w-4" />
-            <span>Обновить</span>
+            <span className="hidden sm:inline">{t('common:actions.refresh')}</span>
           </button>
+          
           <button
             id="btn-logout-admin"
             onClick={onLogout}
-            className="bg-slate-950 hover:bg-rose-950/40 hover:text-rose-400 text-slate-400 rounded-xl p-2.5 border border-slate-800 hover:border-rose-900 transition flex items-center gap-1.5 text-sm font-semibold"
+            className="bg-slate-950 hover:bg-rose-950/40 hover:text-rose-400 text-slate-400 rounded-xl p-2.5 border border-slate-800 hover:border-rose-900 transition flex items-center gap-1.5 text-sm font-semibold cursor-pointer"
           >
             <LogOut className="h-5 w-5" />
-            <span className="hidden sm:inline">Выйти</span>
+            <span className="hidden sm:inline">{t('common:actions.logout')}</span>
           </button>
         </div>
       </header>
+
+      {showProfileModal && (
+        <ProfileModal
+          user={user}
+          onClose={() => setShowProfileModal(false)}
+          addToast={addToast}
+        />
+      )}
 
       {error && (
         <div className="bg-red-950/40 border border-red-800 text-red-300 text-sm p-4 rounded-xl flex items-start gap-2">
@@ -557,53 +590,54 @@ const AdminDashboard = ({ user, onLogout }) => {
       )}
 
       {/* Tab Navigation */}
-      <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl max-w-2xl">
-        {user.platformRole === 'global_admin' ? (
-          <>
-            <button
-              onClick={() => setActiveTab('global_families')}
-              className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all ${
-                activeTab === 'global_families' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Семьи Платформы
-            </button>
-            <button
-              onClick={() => setActiveTab('audit_logs')}
-              className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all ${
-                activeTab === 'audit_logs' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Системный Аудит
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              onClick={() => setActiveTab('operations')}
-              className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all ${
-                activeTab === 'operations' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Ожидающие Заявки ({familyStats.pending_operations_count})
-            </button>
-            <button
-              onClick={() => setActiveTab('banks')}
-              className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all ${
-                activeTab === 'banks' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Семейные Банки
-            </button>
-            <button
-              onClick={() => setActiveTab('children')}
-              className={`flex-1 py-2.5 text-xs font-semibold rounded-lg transition-all ${
-                activeTab === 'children' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              Дети в семье
-            </button>
-          </>
+      <div className="flex flex-wrap bg-slate-900 border border-slate-800 p-1 rounded-xl max-w-4xl gap-1">
+        <button
+          onClick={() => setActiveTab('operations')}
+          className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-semibold rounded-lg transition-all ${
+            activeTab === 'operations' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Заявки ({familyStats.pending_operations_count})
+        </button>
+        <button
+          onClick={() => setActiveTab('banks')}
+          className={`flex-1 min-w-[120px] py-2.5 px-3 text-xs font-semibold rounded-lg transition-all ${
+            activeTab === 'banks' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Семейные Банки
+        </button>
+        <button
+          onClick={() => setActiveTab('children')}
+          className={`flex-1 min-w-[110px] py-2.5 px-3 text-xs font-semibold rounded-lg transition-all ${
+            activeTab === 'children' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Дети
+        </button>
+        <button
+          onClick={() => setActiveTab('adults')}
+          className={`flex-1 min-w-[110px] py-2.5 px-3 text-xs font-semibold rounded-lg transition-all ${
+            activeTab === 'adults' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Взрослые
+        </button>
+        <button
+          onClick={() => setActiveTab('audit_logs')}
+          className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-semibold rounded-lg transition-all ${
+            activeTab === 'audit_logs' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          Журнал действий
+        </button>
+        {isServiceAdmin && (
+          <button
+            onClick={() => navigate('/service-admin/audit')}
+            className="flex-1 min-w-[160px] py-2.5 px-3 text-xs font-semibold rounded-lg bg-purple-950/80 hover:bg-purple-900/80 text-purple-300 border border-purple-800/60 transition-all"
+          >
+            Сервисный Аудит
+          </button>
         )}
       </div>
 
@@ -947,6 +981,16 @@ const AdminDashboard = ({ user, onLogout }) => {
             })}
           </div>
         </section>
+      )}
+
+      {/* Adults Tab */}
+      {activeTab === 'adults' && (
+        <AdultsTab user={user} isOwner={isOwner} addToast={addToast} />
+      )}
+
+      {/* Audit Logs Tab */}
+      {activeTab === 'audit_logs' && (
+        <AuditLogTab isOwner={isOwner} addToast={addToast} />
       )}
 
       {/* Global Admin: Families Panel */}

@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { db, dbGet, dbRun, dbAll } = require('../models/db');
 const { requireAuth, requireFamilyAdmin, requireFamilyMembership } = require('../middleware/auth');
+const { recordAuditEvent } = require('../utils/auditLogger');
 
 const router = express.Router();
 
@@ -98,11 +99,14 @@ router.post('/', requireAuth, requireFamilyAdmin, requireFamilyMembership, async
       VALUES (?, ?, 'child', ?)
     `, [req.user.familyId, childUserId, childProfileId]);
 
-    // Audit Log
-    await dbRun(`
-      INSERT INTO audit_logs (family_id, actor_user_id, action, entity_type, entity_id, reason)
-      VALUES (?, ?, 'create_child', 'child', ?, ?)
-    `, [req.user.familyId, req.user.id, childProfileId, `Создан профиль ребенка: ${displayName} (${combinedUsername})`]);
+    await recordAuditEvent({
+      req,
+      familyId: req.user.familyId,
+      eventType: 'child_created',
+      targetType: 'child',
+      targetId: childProfileId,
+      metadata: { displayName, childUserId, childUsername: cleanUsername }
+    });
 
     return res.status(201).json({
       success: true,

@@ -1,0 +1,18 @@
+{
+  "title": "Family Management",
+  "members": "Family Members",
+  "children": "Children",
+  "adults": "Adults",
+  "inviteAdult": "Invite Adult",
+  "addChild": "Add Child",
+  "transferOwnership": "Transfer Family Ownership",
+  "fields": {
+    "displayName": "Display Name",
+    "username": "Child's Username",
+    "password": "Password",
+    "birthDate": "Date of Birth",
+    "email": "Adult's Email",
+    "role": "Role"
+  },
+  "transferNotice": "The family owner has full control over the family space and all bank accounts."
+}

@@ -1,0 +1,32 @@
+{
+  "title": "Журнал аудита",
+  "filters": {
+    "dateFrom": "Дата с",
+    "dateTo": "Дата по",
+    "eventType": "Тип события",
+    "actor": "Исполнитель",
+    "allEvents": "Все события"
+  },
+  "columns": {
+    "time": "Время",
+    "actor": "Кто выполнил",
+    "event": "Событие",
+    "target": "Объект",
+    "details": "Детали"
+  },
+  "eventTypes": {
+    "register_family": "Регистрация семьи",
+    "verify_email": "Верификация email",
+    "auth_login_success": "Успешный вход",
+    "auth_login_failed": "Неудачный вход",
+    "auth_logout": "Выход из системы",
+    "bank_create": "Создание банка",
+    "bank_update": "Обновление банка",
+    "deposit_open": "Открытие вклада",
+    "deposit_close": "Закрытие вклада",
+    "deposit_topup": "Пополнение вклада",
+    "parent_reward": "Поощрение родителя",
+    "interest_accrued": "Начисление процентов",
+    "rate_change_proposal": "Изменение ставки"
+  }
+}

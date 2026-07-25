@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 import { User, Lock, LogIn, Eye, EyeOff, Building, Mail, ShieldAlert } from 'lucide-react';
+import HelpTooltip from '../components/HelpTooltip';
 
 const Login = ({ onLogin }) => {
+  const { t, i18n } = useTranslation(['auth', 'common', 'tooltips']);
   const [activeTab, setActiveTab] = useState('parent'); // 'parent', 'child', 'register'
   const [showPassword, setShowPassword] = useState(false);
   
@@ -25,6 +28,11 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+    localStorage.setItem('app_language', lng);
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -40,12 +48,12 @@ const Login = ({ onLogin }) => {
     setError('');
 
     try {
-      const verifyRes = await axios.post('/auth/verify-email', {
+      await axios.post('/auth/verify-email', {
         email: registeredEmail,
         code: verificationCode.trim()
       });
 
-      setSuccess('Email успешно подтвержден! Выполняем автоматический вход...');
+      setSuccess(t('auth:successRegistration'));
 
       // Auto login
       const loginResponse = await axios.post('/auth/login', {
@@ -58,7 +66,7 @@ const Login = ({ onLogin }) => {
       }, 1000);
 
     } catch (err) {
-      setError(err.response?.data?.error || 'Неверный код подтверждения.');
+      setError(err.response?.data?.error || t('common:unknown'));
     } finally {
       setLoading(false);
     }
@@ -72,9 +80,8 @@ const Login = ({ onLogin }) => {
 
     try {
       if (activeTab === 'parent') {
-        // Adult Login
         if (!formData.email || !formData.password) {
-          throw new Error('Пожалуйста, введите email и пароль.');
+          throw new Error(t('auth:fields.login') + ' ' + t('common:actions.confirm'));
         }
 
         const response = await axios.post('/auth/login', {
@@ -85,9 +92,8 @@ const Login = ({ onLogin }) => {
         onLogin(response.data.user, response.data.token);
 
       } else if (activeTab === 'child') {
-        // Child Login: slug + childUsername & password
         if (!formData.familySlug || !formData.childUsername || !formData.password) {
-          throw new Error('Заполните идентификатор семьи, логин ребенка и пароль.');
+          throw new Error(t('auth:childLoginHint'));
         }
 
         const cleanSlug = formData.familySlug.toLowerCase().trim().replace(/[^a-z0-9]/g, '');
@@ -102,13 +108,12 @@ const Login = ({ onLogin }) => {
         onLogin(response.data.user, response.data.token);
 
       } else {
-        // Register Family Space
         if (!formData.familyName || !formData.adminName || !formData.email || !formData.password) {
-          throw new Error('Все поля обязательны для регистрации.');
+          throw new Error(t('common:unknown'));
         }
 
         if (formData.password.length < 10) {
-          throw new Error('Пароль взрослого должен быть не менее 10 символов.');
+          throw new Error(t('auth:resetPasswordDesc'));
         }
 
         await axios.post('/auth/register-family', {
@@ -121,10 +126,10 @@ const Login = ({ onLogin }) => {
 
         setRegisteredEmail(formData.email);
         setIsVerifying(true);
-        setSuccess('Регистрация успешна! Код верификации отправлен на ваш email (проверьте консоль dev-сервера).');
+        setSuccess(t('auth:successRegistration'));
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Произошла непредвиденная ошибка.');
+      setError(err.response?.data?.error || err.message || t('common:unknown'));
     } finally {
       setLoading(false);
     }
@@ -136,10 +141,9 @@ const Login = ({ onLogin }) => {
         <div id="verification-card" className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl space-y-6">
           <div className="text-center space-y-2">
             <Mail className="h-12 w-12 text-indigo-400 mx-auto" />
-            <h2 className="text-2xl font-bold text-slate-100 font-sans tracking-tight">Подтверждение Email</h2>
+            <h2 className="text-2xl font-bold text-slate-100 font-sans tracking-tight">{t('auth:forgotPasswordTitle')}</h2>
             <p className="text-sm text-slate-400">
-              Мы отправили проверочный код на адрес <strong className="text-indigo-300">{registeredEmail}</strong>. 
-              Загляните в консоль разработчика вашего сервера Node.js, чтобы увидеть отправленный код.
+              {registeredEmail}
             </p>
           </div>
 
@@ -159,7 +163,7 @@ const Login = ({ onLogin }) => {
           <form onSubmit={handleVerificationSubmit} className="space-y-4">
             <div>
               <label htmlFor="verify-code" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                6-значный код подтверждения
+                Код
               </label>
               <input
                 id="verify-code"
@@ -179,7 +183,7 @@ const Login = ({ onLogin }) => {
               disabled={loading}
               className="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:bg-indigo-800/50 text-white font-semibold py-3 px-4 rounded-xl transition shadow-lg shadow-indigo-600/20"
             >
-              {loading ? 'Подтверждение...' : 'Подтвердить и Войти'}
+              {loading ? t('common:a11y.loading') : t('common:actions.confirm')}
             </button>
           </form>
         </div>
@@ -191,13 +195,34 @@ const Login = ({ onLogin }) => {
     <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4 py-12">
       <div id="login-card" className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
         
+        {/* Language Switcher Bar */}
+        <div className="flex justify-between items-center px-6 py-3 border-b border-slate-800/60 bg-slate-950/60">
+          <span className="text-xs text-slate-400 font-medium">{t('common:app.name')}</span>
+          <div className="inline-flex rounded-lg bg-slate-900 p-1 border border-slate-800 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => changeLanguage('ru')}
+              className={`px-2.5 py-1 rounded-md transition ${i18n.language.startsWith('ru') ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              RU
+            </button>
+            <button
+              type="button"
+              onClick={() => changeLanguage('en')}
+              className={`px-2.5 py-1 rounded-md transition ${i18n.language.startsWith('en') ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'}`}
+            >
+              EN
+            </button>
+          </div>
+        </div>
+
         {/* Decorative Header */}
         <div className="bg-gradient-to-r from-indigo-950 to-slate-900 p-8 text-center border-b border-slate-800/60">
           <h1 className="text-3xl font-extrabold text-slate-100 tracking-tight font-sans">
-            👨‍👩‍👧‍👦 Мама-Папа Банк
+            👨‍👩‍👧‍👦 {t('common:app.name')}
           </h1>
           <p className="text-xs text-indigo-300/80 mt-1 uppercase tracking-widest font-semibold">
-            Мультисемейная SaaS-платформа
+            {t('common:app.tagline')}
           </p>
         </div>
 
@@ -212,7 +237,7 @@ const Login = ({ onLogin }) => {
                 activeTab === 'parent' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Родителям
+              {t('common:roles.family_adult')}
             </button>
             <button
               id="tab-child"
@@ -222,7 +247,7 @@ const Login = ({ onLogin }) => {
                 activeTab === 'child' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Детям
+              {t('common:roles.child')}
             </button>
             <button
               id="tab-register"
@@ -232,7 +257,7 @@ const Login = ({ onLogin }) => {
                 activeTab === 'register' ? 'bg-indigo-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Создать Семью
+              {t('auth:registerTab')}
             </button>
           </div>
 
@@ -254,9 +279,12 @@ const Login = ({ onLogin }) => {
             {activeTab === 'register' && (
               <>
                 <div>
-                  <label htmlFor="familyName" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                    Название семьи (например, Ивановы)
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="familyName" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      {t('auth:fields.familyName')}
+                    </label>
+                    <HelpTooltip tooltipKey="auth.familyName" />
+                  </div>
                   <div className="relative">
                     <Building className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-500" />
                     <input
@@ -274,7 +302,7 @@ const Login = ({ onLogin }) => {
 
                 <div>
                   <label htmlFor="adminName" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                    Ваше Имя
+                    {t('auth:fields.name')}
                   </label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-500" />
@@ -296,9 +324,12 @@ const Login = ({ onLogin }) => {
             {activeTab === 'child' && (
               <>
                 <div>
-                  <label htmlFor="familySlug" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                    Адрес Семьи (Family Slug)
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="familySlug" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      {t('auth:fields.familySlug')}
+                    </label>
+                    <HelpTooltip tooltipKey="auth.familySlug" />
+                  </div>
                   <div className="relative">
                     <Building className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-500" />
                     <input
@@ -307,7 +338,7 @@ const Login = ({ onLogin }) => {
                       name="familySlug"
                       value={formData.familySlug}
                       onChange={handleChange}
-                      placeholder="ivanovy"
+                      placeholder="ivanov"
                       required
                       className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl pl-11 pr-4 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition font-mono"
                     />
@@ -315,9 +346,12 @@ const Login = ({ onLogin }) => {
                 </div>
 
                 <div>
-                  <label htmlFor="childUsername" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                    Логин ребенка
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label htmlFor="childUsername" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      {t('family:fields.username')}
+                    </label>
+                    <HelpTooltip tooltipKey="family.childUsername" />
+                  </div>
                   <div className="relative">
                     <User className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-500" />
                     <input
@@ -337,9 +371,12 @@ const Login = ({ onLogin }) => {
 
             {activeTab !== 'child' && (
               <div>
-                <label htmlFor="email" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                  Электронная почта (Email)
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="email" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    {t('auth:fields.email')}
+                  </label>
+                  <HelpTooltip tooltipKey="auth.login" />
+                </div>
                 <div className="relative">
                   <Mail className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-500" />
                   <input
@@ -357,9 +394,12 @@ const Login = ({ onLogin }) => {
             )}
 
             <div>
-              <label htmlFor="password" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Пароль
-              </label>
+              <div className="flex items-center justify-between mb-2">
+                <label htmlFor="password" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  {t('auth:fields.password')}
+                </label>
+                <HelpTooltip tooltipKey="auth.password" />
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3.5 top-3.5 h-5 w-5 text-slate-500" />
                 <input
@@ -368,7 +408,7 @@ const Login = ({ onLogin }) => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder={activeTab === 'register' ? 'Минимум 10 символов' : '••••••••'}
+                  placeholder={activeTab === 'register' ? '••••••••••' : '••••••••'}
                   required
                   minLength={activeTab === 'register' ? 10 : 6}
                   className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl pl-11 pr-11 py-3 text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition"
@@ -385,9 +425,12 @@ const Login = ({ onLogin }) => {
 
             {activeTab === 'register' && (
               <div>
-                <label htmlFor="timezone" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                  Часовой пояс
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="timezone" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    {t('auth:fields.timezone')}
+                  </label>
+                  <HelpTooltip tooltipKey="auth.timezone" />
+                </div>
                 <select
                   id="timezone"
                   name="timezone"
@@ -408,17 +451,17 @@ const Login = ({ onLogin }) => {
               id="btn-login-submit"
               type="submit"
               disabled={loading}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:bg-indigo-800/50 text-white font-semibold py-3 px-4 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2"
+              className="w-full bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 disabled:bg-indigo-800/50 text-white font-semibold py-3 px-4 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center justify-center gap-2 cursor-pointer"
             >
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                  {activeTab === 'register' ? 'Создание...' : 'Вход...'}
+                  {activeTab === 'register' ? t('common:actions.create') + '...' : t('common:actions.login') + '...'}
                 </>
               ) : (
                 <>
                   <LogIn className="h-5 w-5" />
-                  {activeTab === 'register' ? 'Зарегистрировать Семью' : 'Войти в Систему'}
+                  {activeTab === 'register' ? t('common:actions.register') : t('common:actions.login')}
                 </>
               )}
             </button>
@@ -428,8 +471,8 @@ const Login = ({ onLogin }) => {
           <div className="text-center">
             <p className="text-xs text-slate-500">
               {activeTab === 'child' 
-                ? 'Ребенок заходит по адресу, выданному родителями (slug) и логину.' 
-                : 'Безопасное SaaS-пространство с изоляцией данных и защитой сессий.'}
+                ? t('auth:childLoginHint')
+                : t('common:app.tagline')}
             </p>
           </div>
         </div>

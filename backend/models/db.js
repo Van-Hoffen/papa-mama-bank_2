@@ -82,9 +82,11 @@ const initDB = async () => {
         currency_code TEXT NOT NULL DEFAULT 'RUB',
         status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('pending', 'active', 'blocked', 'deleted')),
         created_by_user_id INTEGER,
+        owner_user_id INTEGER,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        deleted_at DATETIME
+        deleted_at DATETIME,
+        FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
 
@@ -94,7 +96,7 @@ const initDB = async () => {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         family_id INTEGER NOT NULL,
         user_id INTEGER NOT NULL,
-        role TEXT NOT NULL CHECK(role IN ('family_admin', 'child')),
+        role TEXT NOT NULL CHECK(role IN ('family_owner', 'family_adult', 'family_admin', 'child')),
         child_profile_id INTEGER,
         joined_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -442,35 +444,119 @@ const initDB = async () => {
         family_id INTEGER NOT NULL,
         email_normalized TEXT NOT NULL,
         invitee_name TEXT NOT NULL,
-        role TEXT NOT NULL DEFAULT 'family_admin' CHECK(role IN ('family_admin')),
+        role TEXT NOT NULL DEFAULT 'family_adult' CHECK(role IN ('family_adult', 'family_admin')),
         token_hash TEXT NOT NULL UNIQUE,
         expires_at DATETIME NOT NULL,
         accepted_at DATETIME,
         revoked_at DATETIME,
         created_by_user_id INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE CASCADE,
         FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE CASCADE
       )
     `);
 
-    // 10. Audit Logs Table
+    // 10. Ownership Transfers Table
+    await dbRun(`
+      CREATE TABLE IF NOT EXISTS ownership_transfers (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        family_id INTEGER NOT NULL,
+        from_user_id INTEGER NOT NULL,
+        to_user_id INTEGER NOT NULL,
+        token_hash TEXT NOT NULL UNIQUE,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'accepted', 'rejected', 'cancelled', 'expired')),
+        expires_at DATETIME NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        responded_at DATETIME,
+        FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE CASCADE,
+        FOREIGN KEY (from_user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (to_user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+
+    // 11. Audit Logs Table
     await dbRun(`
       CREATE TABLE IF NOT EXISTS audit_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         family_id INTEGER,
         actor_user_id INTEGER,
-        action TEXT NOT NULL,
-        entity_type TEXT NOT NULL,
-        entity_id INTEGER,
-        reason TEXT,
-        metadata_json TEXT,
+        actor_role TEXT,
+        event_type TEXT NOT NULL,
+        target_type TEXT,
+        target_id INTEGER,
+        request_id TEXT,
         ip_address TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        user_agent TEXT,
+        metadata_json TEXT,
         FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE SET NULL,
         FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
       )
     `);
+
+    // Migrations for existing tables
+    try {
+      await dbRun(`ALTER TABLE users ADD COLUMN preferred_locale VARCHAR(10) NOT NULL DEFAULT 'ru'`);
+    } catch (e) {}
+    try {
+      await dbRun(`ALTER TABLE families ADD COLUMN owner_user_id INTEGER`);
+    } catch (e) {}
+    try {
+      await dbRun(`ALTER TABLE audit_logs ADD COLUMN actor_role TEXT`);
+    } catch (e) {}
+    try {
+      await dbRun(`ALTER TABLE audit_logs ADD COLUMN event_type TEXT`);
+    } catch (e) {}
+    try {
+      await dbRun(`ALTER TABLE audit_logs ADD COLUMN target_type TEXT`);
+    } catch (e) {}
+    try {
+      await dbRun(`ALTER TABLE audit_logs ADD COLUMN target_id INTEGER`);
+    } catch (e) {}
+    try {
+      await dbRun(`ALTER TABLE audit_logs ADD COLUMN request_id TEXT`);
+    } catch (e) {}
+    try {
+      await dbRun(`ALTER TABLE audit_logs ADD COLUMN user_agent TEXT`);
+    } catch (e) {}
+
+    // Backfill owner_user_id for existing families if null
+    try {
+      const familiesList = await dbAll(`SELECT id, created_by_user_id, owner_user_id FROM families`);
+      for (const f of familiesList) {
+        if (!f.owner_user_id) {
+          const firstAdmin = await dbGet(`
+            SELECT user_id FROM family_members 
+            WHERE family_id = ? AND role IN ('family_owner', 'family_admin')
+            ORDER BY joined_at ASC LIMIT 1
+          `, [f.id]);
+          const ownerId = f.created_by_user_id || (firstAdmin ? firstAdmin.user_id : null);
+          if (ownerId) {
+            await dbRun(`UPDATE families SET owner_user_id = ? WHERE id = ?`, [ownerId, f.id]);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error backfilling owner_user_id:', e);
+    }
+
+    // Migrate family_members roles (family_admin -> family_owner or family_adult)
+    try {
+      const allMembers = await dbAll(`
+        SELECT fm.id, fm.family_id, fm.user_id, fm.role, f.owner_user_id, f.created_by_user_id
+        FROM family_members fm
+        JOIN families f ON fm.family_id = f.id
+        WHERE fm.role = 'family_admin'
+      `);
+      for (const m of allMembers) {
+        const isOwner = (m.user_id === m.owner_user_id) || (m.user_id === m.created_by_user_id);
+        const newRole = isOwner ? 'family_owner' : 'family_adult';
+        await dbRun(`UPDATE family_members SET role = ? WHERE id = ?`, [newRole, m.id]);
+      }
+    } catch (e) {
+      console.error('Error migrating family_members roles:', e);
+    }
 
     // 12. Notifications Table
     await dbRun(`

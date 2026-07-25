@@ -5,6 +5,8 @@ const jwt = require('jsonwebtoken');
 const { db, dbGet, dbRun } = require('../models/db');
 const { requireAuth } = require('../middleware/auth');
 const EmailService = require('../utils/emailService');
+const { recordAuditEvent } = require('../utils/auditLogger');
+const logger = require('../utils/logger');
 
 const router = express.Router();
 
@@ -207,10 +209,21 @@ router.post('/login', async (req, res) => {
     }
 
     if (!user) {
+      await recordAuditEvent({
+        req,
+        eventType: 'auth_login_failed',
+        metadata: { loginAttempt: loginClean }
+      });
       return res.status(401).json({ error: 'Неверные учетные данные.' });
     }
 
     if (user.status === 'blocked') {
+      await recordAuditEvent({
+        req,
+        actorUserId: user.id,
+        eventType: 'auth_login_failed',
+        metadata: { reason: 'account_blocked' }
+      });
       return res.status(403).json({ error: 'Ваш доступ заблокирован администратором платформы.' });
     }
 
@@ -221,6 +234,12 @@ router.post('/login', async (req, res) => {
     // Verify Password
     const passwordValid = bcrypt.compareSync(password, user.password_hash);
     if (!passwordValid) {
+      await recordAuditEvent({
+        req,
+        actorUserId: user.id,
+        eventType: 'auth_login_failed',
+        metadata: { reason: 'invalid_password' }
+      });
       return res.status(401).json({ error: 'Неверные учетные данные.' });
     }
 
@@ -266,6 +285,16 @@ router.post('/login', async (req, res) => {
     // Update last login
     await dbRun(`UPDATE users SET last_login_at = datetime('now') WHERE id = ?`, [user.id]);
 
+    await recordAuditEvent({
+      req,
+      familyId,
+      actorUserId: user.id,
+      actorRole: familyRole || user.platform_role,
+      eventType: 'auth_login_success',
+      targetType: 'user',
+      targetId: user.id
+    });
+
     // Return profile
     return res.json({
       token,
@@ -276,6 +305,7 @@ router.post('/login', async (req, res) => {
         displayName: user.display_name,
         platformRole: user.platform_role,
         mustChangePassword: !!user.must_change_password,
+        preferredLocale: user.preferred_locale || 'ru',
         familyId,
         familyRole,
         childProfileId,
@@ -293,7 +323,11 @@ router.post('/login', async (req, res) => {
 /**
  * Logout (client handles clearing token, but server acknowledges).
  */
-router.post('/logout', (req, res) => {
+router.post('/logout', requireAuth, async (req, res) => {
+  await recordAuditEvent({
+    req,
+    eventType: 'auth_logout'
+  });
   return res.json({ success: true, message: 'Вы успешно вышли из системы.' });
 });
 
@@ -410,7 +444,7 @@ router.post('/reset-password', async (req, res) => {
  */
 router.get('/me', requireAuth, async (req, res) => {
   try {
-    const user = await dbGet(`SELECT id, email, username, display_name, platform_role, must_change_password FROM users WHERE id = ?`, [req.user.id]);
+    const user = await dbGet(`SELECT id, email, username, display_name, platform_role, must_change_password, preferred_locale FROM users WHERE id = ?`, [req.user.id]);
     
     return res.json({
       user: {
@@ -420,6 +454,7 @@ router.get('/me', requireAuth, async (req, res) => {
         displayName: user.display_name,
         platformRole: user.platform_role,
         mustChangePassword: !!user.must_change_password,
+        preferredLocale: user.preferred_locale || 'ru',
         familyId: req.user.familyId,
         familyRole: req.user.familyRole,
         childProfileId: req.user.childProfileId,

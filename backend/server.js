@@ -10,9 +10,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000; // Dynamically uses PORT from env or falls back to 5000 for development
 
+const requestLoggerMiddleware = require('./middleware/requestLogger');
+
 // Middleware
 app.use(cors());
 app.use(bodyParser.json());
+app.use(requestLoggerMiddleware);
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -26,6 +29,8 @@ const banksRoutes = require('./routes/banks');
 const rateChangeProposalRoutes = require('./routes/rateChangeProposals');
 const adminRoutes = require('./routes/admin');
 const notificationRoutes = require('./routes/notifications');
+const serviceAdminRoutes = require('./routes/serviceAdmin');
+const profileRoutes = require('./routes/profile');
 
 // Database initialization
 const db = require('./models/db');
@@ -43,6 +48,8 @@ app.use('/api/banks', banksRoutes);
 app.use('/api/rate-change-proposals', rateChangeProposalRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/service-admin', serviceAdminRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Serve static files
 app.use(express.static(path.join(__dirname, '../frontend/dist')));
