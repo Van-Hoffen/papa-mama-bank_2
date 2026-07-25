@@ -46,7 +46,7 @@ router.get('/:id', requireAuth, requireFamilyMembership, async (req, res) => {
  */
 router.post('/', requireAuth, requireFamilyAdmin, requireFamilyMembership, async (req, res) => {
   const {
-    name, description, color, icon, 
+    name, description, color, icon, iconEmoji, icon_emoji,
     interestRateBps, periodDays, minimumDepositKopecks, 
     maximumDepositPerChildKopecks, earlyWithdrawalPenaltyBps, minimumHoldingDays,
     earlyWithdrawalInterestPolicy,
@@ -80,9 +80,11 @@ router.post('/', requireAuth, requireFamilyAdmin, requireFamilyMembership, async
       slug = `${slug}-${Math.floor(Math.random() * 1000)}`;
     }
 
+    const bankEmoji = iconEmoji || icon_emoji || '🏦';
+
     const result = await dbRun(`
       INSERT INTO banks (
-        family_id, slug, name, description, color, icon, 
+        family_id, slug, name, description, color, icon, icon_emoji,
         interest_rate_bps, period_days, minimum_deposit_kopecks, 
         maximum_deposit_per_child_kopecks, early_withdrawal_penalty_bps, 
         minimum_holding_days, early_withdrawal_interest_policy,
@@ -90,9 +92,9 @@ router.post('/', requireAuth, requireFamilyAdmin, requireFamilyMembership, async
         maximum_total_deposit_per_child_kopecks, interest_accrual_mode,
         is_active, created_by_user_id
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?)
     `, [
-      req.user.familyId, slug, name, description || null, color || '#6366f1', icon || 'piggy-bank',
+      req.user.familyId, slug, name, description || null, color || '#6366f1', icon || 'piggy-bank', bankEmoji,
       parseInt(interestRateBps, 10), parseInt(periodDays, 10), parseInt(minimumDepositKopecks, 10),
       maximumDepositPerChildKopecks ? parseInt(maximumDepositPerChildKopecks, 10) : null,
       earlyWithdrawalPenaltyBps ? parseInt(earlyWithdrawalPenaltyBps, 10) : 0,
@@ -133,7 +135,7 @@ router.post('/', requireAuth, requireFamilyAdmin, requireFamilyMembership, async
 router.patch('/:id', requireAuth, requireFamilyAdmin, requireFamilyMembership, async (req, res) => {
   const bankId = parseInt(req.params.id, 10);
   const {
-    name, description, color, icon,
+    name, description, color, icon, iconEmoji, icon_emoji,
     interestRateBps, periodDays, minimumDepositKopecks,
     maximumDepositPerChildKopecks, earlyWithdrawalPenaltyBps, minimumHoldingDays,
     earlyWithdrawalInterestPolicy,
@@ -151,6 +153,7 @@ router.patch('/:id', requireAuth, requireFamilyAdmin, requireFamilyMembership, a
     const updatedDescription = description !== undefined ? description : bank.description;
     const updatedColor = color !== undefined ? color : bank.color;
     const updatedIcon = icon !== undefined ? icon : bank.icon;
+    const updatedIconEmoji = (iconEmoji !== undefined ? iconEmoji : (icon_emoji !== undefined ? icon_emoji : bank.icon_emoji)) || '🏦';
     
     const updatedRate = interestRateBps !== undefined ? parseInt(interestRateBps, 10) : bank.interest_rate_bps;
     const updatedPeriod = periodDays !== undefined ? parseInt(periodDays, 10) : bank.period_days;
@@ -182,7 +185,7 @@ router.patch('/:id', requireAuth, requireFamilyAdmin, requireFamilyMembership, a
     // Update bank template parameters
     await dbRun(`
       UPDATE banks
-      SET name = ?, description = ?, color = ?, icon = ?,
+      SET name = ?, description = ?, color = ?, icon = ?, icon_emoji = ?,
           interest_rate_bps = ?, period_days = ?, minimum_deposit_kopecks = ?,
           maximum_deposit_per_child_kopecks = ?, early_withdrawal_penalty_bps = ?,
           minimum_holding_days = ?, early_withdrawal_interest_policy = ?,
@@ -191,7 +194,7 @@ router.patch('/:id', requireAuth, requireFamilyAdmin, requireFamilyMembership, a
           updated_at = datetime('now')
       WHERE id = ?
     `, [
-      updatedName, updatedDescription, updatedColor, updatedIcon,
+      updatedName, updatedDescription, updatedColor, updatedIcon, updatedIconEmoji,
       updatedRate, updatedPeriod, updatedMinDep, updatedMaxDep, updatedPenalty, updatedMinHold,
       updatedPolicy,
       updatedAllowTopUp, updatedMinTopUp, updatedMaxTopUp, updatedMaxTotalDep, updatedAccrualMode,

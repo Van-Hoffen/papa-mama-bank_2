@@ -5,12 +5,31 @@ import {
   Settings, Plus, Trash2, Shield, Calendar, ShieldAlert, Key, Save, Eye,
   Archive, RotateCcw, AlertCircle, AlertTriangle
 } from 'lucide-react';
+import HelpTooltip from '../components/HelpTooltip';
+import ToastContainer from '../components/ToastContainer';
+import { BANK_HELP_TEXTS } from '../constants/bankHelpTexts';
+
+const EMOJI_PICKER_OPTIONS = ['🏦', '🐷', '💰', '💳', '🪙', '💎', '🌟', '🏰', '🚀', '👑', '🎯', '📈', '🏠', '🚗', '🎁'];
 
 const AdminDashboard = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState('operations'); // 'operations', 'banks', 'children', 'audit_logs', 'global_families'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Toast System State
+  const [toasts, setToasts] = useState([]);
+  const addToast = (message, type = 'error') => {
+    if (!message) return;
+    const id = Date.now() + Math.random();
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 5000);
+  };
+  const removeToast = (id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
   // Dashboard Stats
   const [familyStats, setFamilyStats] = useState({
@@ -65,14 +84,13 @@ const AdminDashboard = ({ user, onLogout }) => {
     name: '',
     description: '',
     color: '#6366f1',
-    icon: 'piggy-bank',
-    interestRateBps: '400', // 4%
+    iconEmoji: '🏦',
+    interestRatePercent: '11.0',
     periodDays: '30',
     minimumDepositRubles: '1000',
     maximumDepositRubles: '',
-    earlyWithdrawalPenaltyBps: '200', // 2%
+    earlyWithdrawalPenaltyPercent: '2.0',
     minimumHoldingDays: '0',
-    // V2 Topup features
     allowTopUp: true,
     minimumTopUpRubles: '100',
     maximumTopUpRubles: '',
@@ -120,7 +138,9 @@ const AdminDashboard = ({ user, onLogout }) => {
         }
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Ошибка загрузки данных');
+      const errMsg = err.response?.data?.error || err.message || 'Ошибка загрузки данных';
+      setError(errMsg);
+      addToast(errMsg, 'error');
     } finally {
       setLoading(false);
     }
@@ -128,37 +148,37 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   // Operation Approvals
   const handleApproveOp = async (opId) => {
-    setError('');
-    setSuccessMessage('');
     try {
       const res = await axios.post(`/operations/${opId}/approve`);
-      setSuccessMessage(res.data.message);
+      addToast(res.data.message || 'Операция одобрена', 'success');
       fetchData();
     } catch (err) {
-      setError(err.response?.data?.error || 'Не удалось одобрить операцию.');
+      addToast(err.response?.data?.error || 'Не удалось одобрить операцию.', 'error');
     }
   };
 
   const handleRejectOp = async (opId, reason = 'Отклонено родителями') => {
-    setError('');
-    setSuccessMessage('');
     try {
       const res = await axios.post(`/operations/${opId}/reject`, { reason });
-      setSuccessMessage(res.data.message);
+      addToast(res.data.message || 'Операция отклонена', 'success');
       fetchData();
     } catch (err) {
-      setError(err.response?.data?.error || 'Не удалось отклонить операцию.');
+      addToast(err.response?.data?.error || 'Не удалось отклонить операцию.', 'error');
     }
   };
 
   // Bank Actions
   const handleCreateBank = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccessMessage('');
+
+    const ratePercent = parseFloat(bankForm.interestRatePercent);
+    if (isNaN(ratePercent) || ratePercent < 0.01 || ratePercent > 100) {
+      addToast('Процентная ставка должна быть от 0.01% до 100%.', 'error');
+      return;
+    }
 
     try {
-      const minKopecks = Math.round(parseFloat(bankForm.minimumDepositRubles) * 100);
+      const minKopecks = Math.round(parseFloat(bankForm.minimumDepositRubles || '0') * 100);
       const maxKopecks = bankForm.maximumDepositRubles ? Math.round(parseFloat(bankForm.maximumDepositRubles) * 100) : null;
       const minTopUpKopecks = bankForm.allowTopUp && bankForm.minimumTopUpRubles ? Math.round(parseFloat(bankForm.minimumTopUpRubles) * 100) : null;
       const maxTopUpKopecks = bankForm.allowTopUp && bankForm.maximumTopUpRubles ? Math.round(parseFloat(bankForm.maximumTopUpRubles) * 100) : null;
@@ -168,13 +188,13 @@ const AdminDashboard = ({ user, onLogout }) => {
         name: bankForm.name.trim(),
         description: bankForm.description.trim(),
         color: bankForm.color,
-        icon: bankForm.icon,
-        interestRateBps: parseInt(bankForm.interestRateBps, 10),
+        iconEmoji: bankForm.iconEmoji || '🏦',
+        interestRateBps: Math.round(ratePercent * 100),
         periodDays: parseInt(bankForm.periodDays, 10),
         minimumDepositKopecks: minKopecks,
         maximumDepositPerChildKopecks: maxKopecks,
-        earlyWithdrawalPenaltyBps: parseInt(bankForm.earlyWithdrawalPenaltyBps, 10),
-        minimumHoldingDays: parseInt(bankForm.minimumHoldingDays, 10),
+        earlyWithdrawalPenaltyBps: Math.round(parseFloat(bankForm.earlyWithdrawalPenaltyPercent || '0') * 100),
+        minimumHoldingDays: parseInt(bankForm.minimumHoldingDays || '0', 10),
         allowTopUp: bankForm.allowTopUp,
         minimumTopUpKopecks: minTopUpKopecks,
         maximumTopUpKopecks: maxTopUpKopecks,
@@ -183,28 +203,32 @@ const AdminDashboard = ({ user, onLogout }) => {
       };
 
       const res = await axios.post('/banks', payload);
-      setSuccessMessage(res.data.message);
+      addToast(res.data.message || 'Банк успешно создан!', 'success');
       setShowAddBankModal(false);
       setBankForm({
-        name: '', description: '', color: '#6366f1', icon: 'piggy-bank',
-        interestRateBps: '400', periodDays: '30', minimumDepositRubles: '1000',
-        maximumDepositRubles: '', earlyWithdrawalPenaltyBps: '200', minimumHoldingDays: '0',
+        name: '', description: '', color: '#6366f1', iconEmoji: '🏦',
+        interestRatePercent: '11.0', periodDays: '30', minimumDepositRubles: '1000',
+        maximumDepositRubles: '', earlyWithdrawalPenaltyPercent: '2.0', minimumHoldingDays: '0',
         allowTopUp: true, minimumTopUpRubles: '100', maximumTopUpRubles: '',
         maximumTotalDepositPerChildRubles: '', interestAccrualMode: 'whole_balance_on_schedule'
       });
       fetchData();
     } catch (err) {
-      setError(err.response?.data?.error || 'Ошибка при добавлении банка.');
+      addToast(err.response?.data?.error || 'Ошибка при добавлении банка.', 'error');
     }
   };
 
   const handleSaveBankChanges = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccessMessage('');
+
+    const ratePercent = parseFloat(editingBank.interest_rate_percent);
+    if (isNaN(ratePercent) || ratePercent < 0.01 || ratePercent > 100) {
+      addToast('Процентная ставка должна быть от 0.01% до 100%.', 'error');
+      return;
+    }
 
     try {
-      const minKopecks = Math.round(parseFloat(editingBank.minimum_deposit_rubles) * 100);
+      const minKopecks = Math.round(parseFloat(editingBank.minimum_deposit_rubles || '0') * 100);
       const maxKopecks = editingBank.maximum_deposit_rubles ? Math.round(parseFloat(editingBank.maximum_deposit_rubles) * 100) : null;
       const minTopUpKopecks = editingBank.allow_top_up && editingBank.minimum_top_up_rubles ? Math.round(parseFloat(editingBank.minimum_top_up_rubles) * 100) : null;
       const maxTopUpKopecks = editingBank.allow_top_up && editingBank.maximum_top_up_rubles ? Math.round(parseFloat(editingBank.maximum_top_up_rubles) * 100) : null;
@@ -214,50 +238,46 @@ const AdminDashboard = ({ user, onLogout }) => {
         name: editingBank.name,
         description: editingBank.description,
         color: editingBank.color,
-        icon: editingBank.icon,
-        interestRateBps: parseInt(editingBank.interest_rate_bps, 10),
+        iconEmoji: editingBank.icon_emoji || '🏦',
+        interestRateBps: Math.round(ratePercent * 100),
         periodDays: parseInt(editingBank.period_days, 10),
         minimumDepositKopecks: minKopecks,
         maximumDepositPerChildKopecks: maxKopecks,
-        earlyWithdrawalPenaltyBps: parseInt(editingBank.early_withdrawal_penalty_bps, 10),
-        minimumHoldingDays: parseInt(editingBank.minimum_holding_days, 10),
+        earlyWithdrawalPenaltyBps: Math.round(parseFloat(editingBank.early_withdrawal_penalty_percent || '0') * 100),
+        minimumHoldingDays: parseInt(editingBank.minimum_holding_days || '0', 10),
         allowTopUp: editingBank.allow_top_up,
         minimumTopUpKopecks: minTopUpKopecks,
         maximumTopUpKopecks: maxTopUpKopecks,
-        maximumTotalDepositPerChildKopecks: maxTotalKopecks,
+        maximumTotalDepositPerChildRubles: maxTotalKopecks,
         interestAccrualMode: editingBank.interest_accrual_mode
       };
 
       const res = await axios.patch(`/banks/${editingBank.id}`, payload);
-      setSuccessMessage(res.data.message);
+      addToast(res.data.message || 'Условия банка сохранены!', 'success');
       setEditingBank(null);
       fetchData();
     } catch (err) {
-      setError(err.response?.data?.error || 'Ошибка при редактировании условий.');
+      addToast(err.response?.data?.error || 'Ошибка при редактировании условий.', 'error');
     }
   };
 
   const handleArchiveBank = async (bankId) => {
-    setError('');
-    setSuccessMessage('');
     try {
       const res = await axios.post(`/banks/${bankId}/archive`);
-      setSuccessMessage(res.data.message);
+      addToast(res.data.message || 'Банк отправлен в архив', 'success');
       fetchData();
     } catch (err) {
-      setError(err.response?.data?.error || 'Не удалось заархивировать банк.');
+      addToast(err.response?.data?.error || 'Не удалось заархивировать банк.', 'error');
     }
   };
 
   const handleRestoreBank = async (bankId) => {
-    setError('');
-    setSuccessMessage('');
     try {
-      const res = await axios.post(`/banks/${bankId}/restore`);
-      setSuccessMessage(res.data.message);
+      const res = await axios.post(`/banks/${bankId}/unarchive`);
+      addToast(res.data.message || 'Банк восстановлен из архива', 'success');
       fetchData();
     } catch (err) {
-      setError(err.response?.data?.error || 'Не удалось восстановить банк.');
+      addToast(err.response?.data?.error || 'Не удалось восстановить банк.', 'error');
     }
   };
 
@@ -438,6 +458,7 @@ const AdminDashboard = ({ user, onLogout }) => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      <ToastContainer toasts={toasts} onClose={removeToast} />
       
       {/* Header */}
       <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-slate-900 border border-slate-800 rounded-2xl p-6 gap-4 shadow-xl">
@@ -699,9 +720,17 @@ const AdminDashboard = ({ user, onLogout }) => {
               }`}>
                 <div className="space-y-4">
                   <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3.5 h-3.5 rounded-full" style={{ backgroundColor: b.color || '#6366f1' }}></div>
-                      <h3 className="text-sm font-bold text-slate-200">{b.name}</h3>
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="w-9 h-9 rounded-xl flex items-center justify-center text-xl shadow shrink-0"
+                        style={{ backgroundColor: `${b.color || '#6366f1'}33`, color: b.color || '#6366f1' }}
+                      >
+                        {b.icon_emoji || '🏦'}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-200">{b.name}</h3>
+                        <span className="text-[10px] text-indigo-400 font-mono block">{(b.interest_rate_bps / 100).toFixed(2)}% годовых</span>
+                      </div>
                     </div>
                     <span className={`text-[9px] font-semibold px-2 py-0.5 rounded-full ${
                       b.is_active ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400 border border-slate-800/40'
@@ -775,13 +804,13 @@ const AdminDashboard = ({ user, onLogout }) => {
                       name: b.name,
                       description: b.description || '',
                       color: b.color || '#6366f1',
-                      icon: b.icon || 'piggy-bank',
-                      interest_rate_bps: b.interest_rate_bps.toString(),
+                      icon_emoji: b.icon_emoji || '🏦',
+                      interest_rate_percent: (b.interest_rate_bps / 100).toString(),
                       period_days: b.period_days.toString(),
-                      minimum_deposit_rubles: (b.minimum_deposit_kopecks / 100).toString(),
+                      minimum_deposit_rubles: ((b.minimum_deposit_kopecks || 0) / 100).toString(),
                       maximum_deposit_rubles: b.maximum_deposit_per_child_kopecks ? (b.maximum_deposit_per_child_kopecks / 100).toString() : '',
-                      early_withdrawal_penalty_bps: b.early_withdrawal_penalty_bps.toString(),
-                      minimum_holding_days: b.minimum_holding_days.toString(),
+                      early_withdrawal_penalty_percent: ((b.early_withdrawal_penalty_bps || 0) / 100).toString(),
+                      minimum_holding_days: (b.minimum_holding_days || 0).toString(),
                       allow_top_up: b.allow_top_up === 1 || b.allow_top_up === true,
                       minimum_top_up_rubles: b.minimum_top_up_kopecks ? (b.minimum_top_up_kopecks / 100).toString() : '100',
                       maximum_top_up_rubles: b.maximum_top_up_kopecks ? (b.maximum_top_up_kopecks / 100).toString() : '',
@@ -1150,7 +1179,10 @@ const AdminDashboard = ({ user, onLogout }) => {
 
             <form onSubmit={handleCreateBank} className="space-y-4 text-xs">
               <div>
-                <label htmlFor="bank-name" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Название банка</label>
+                <label htmlFor="bank-name" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <span>Название банка</span>
+                  <HelpTooltip text={BANK_HELP_TEXTS.NAME} />
+                </label>
                 <input
                   id="bank-name"
                   type="text"
@@ -1163,7 +1195,10 @@ const AdminDashboard = ({ user, onLogout }) => {
               </div>
 
               <div>
-                <label htmlFor="bank-desc" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Короткое описание</label>
+                <label htmlFor="bank-desc" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <span>Короткое описание</span>
+                  <HelpTooltip text={BANK_HELP_TEXTS.DESCRIPTION} />
+                </label>
                 <input
                   id="bank-desc"
                   type="text"
@@ -1176,19 +1211,28 @@ const AdminDashboard = ({ user, onLogout }) => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="bank-rate" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Ставка в б.п. (1% = 100 б.п.)</label>
+                  <label htmlFor="bank-rate" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Процентная ставка (%)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.INTEREST_RATE_PERCENT} />
+                  </label>
                   <input
                     id="bank-rate"
                     type="number"
-                    placeholder="400"
+                    step="0.01"
+                    min="0.01"
+                    max="100"
+                    placeholder="11.0"
                     required
-                    value={bankForm.interestRateBps}
-                    onChange={(e) => setBankForm({ ...bankForm, interestRateBps: e.target.value })}
+                    value={bankForm.interestRatePercent}
+                    onChange={(e) => setBankForm({ ...bankForm, interestRatePercent: e.target.value })}
                     className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 font-mono focus:border-indigo-500 outline-none transition"
                   />
                 </div>
                 <div>
-                  <label htmlFor="bank-period" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Период начисления (дней)</label>
+                  <label htmlFor="bank-period" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Период начисления (дней)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.PERIOD_DAYS} />
+                  </label>
                   <input
                     id="bank-period"
                     type="number"
@@ -1203,7 +1247,10 @@ const AdminDashboard = ({ user, onLogout }) => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="bank-min" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Мин. вклад (₽)</label>
+                  <label htmlFor="bank-min" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Мин. вклад (₽)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.MINIMUM_DEPOSIT_RUBLES} />
+                  </label>
                   <input
                     id="bank-min"
                     type="number"
@@ -1215,7 +1262,10 @@ const AdminDashboard = ({ user, onLogout }) => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="bank-max" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Макс. лимит / реб. (₽)</label>
+                  <label htmlFor="bank-max" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Макс. лимит / реб. (₽)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.MAXIMUM_DEPOSIT_RUBLES} />
+                  </label>
                   <input
                     id="bank-max"
                     type="number"
@@ -1229,19 +1279,27 @@ const AdminDashboard = ({ user, onLogout }) => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="bank-penalty" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Досрочный штраф (б.п.)</label>
+                  <label htmlFor="bank-penalty" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Досрочный штраф (%)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.EARLY_WITHDRAWAL_PENALTY_PERCENT} />
+                  </label>
                   <input
                     id="bank-penalty"
                     type="number"
-                    placeholder="200"
+                    step="0.01"
+                    min="0"
+                    placeholder="2.0"
                     required
-                    value={bankForm.earlyWithdrawalPenaltyBps}
-                    onChange={(e) => setBankForm({ ...bankForm, earlyWithdrawalPenaltyBps: e.target.value })}
+                    value={bankForm.earlyWithdrawalPenaltyPercent}
+                    onChange={(e) => setBankForm({ ...bankForm, earlyWithdrawalPenaltyPercent: e.target.value })}
                     className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 font-mono focus:border-indigo-500 outline-none transition"
                   />
                 </div>
                 <div>
-                  <label htmlFor="bank-holding" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Мин. удержание (дней)</label>
+                  <label htmlFor="bank-holding" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Мин. удержание (дней)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.MINIMUM_HOLDING_DAYS} />
+                  </label>
                   <input
                     id="bank-holding"
                     type="number"
@@ -1270,12 +1328,18 @@ const AdminDashboard = ({ user, onLogout }) => {
                       onChange={(e) => setBankForm({ ...bankForm, allowTopUp: e.target.checked })}
                       className="w-4 h-4 text-indigo-600 bg-slate-950 border-slate-800 rounded focus:ring-indigo-500"
                     />
-                    <label htmlFor="allow-top-up-checkbox" className="text-xs font-semibold text-slate-300">Разрешить пополнение открытых вкладов</label>
+                    <label htmlFor="allow-top-up-checkbox" className="text-xs font-semibold text-slate-300 flex items-center gap-1">
+                      <span>Разрешить пополнение</span>
+                      <HelpTooltip text={BANK_HELP_TEXTS.ALLOW_TOP_UP} />
+                    </label>
                   </div>
 
                   {bankForm.allowTopUp && (
                     <div className="space-y-1">
-                      <label className="block text-[10px] font-semibold text-slate-400 uppercase">Мин. сумма одного пополнения (₽):</label>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase flex items-center gap-1">
+                        <span>Мин. сумма пополнения (₽):</span>
+                        <HelpTooltip text={BANK_HELP_TEXTS.MINIMUM_TOP_UP_RUBLES} />
+                      </label>
                       <input
                         type="number"
                         placeholder="100"
@@ -1290,7 +1354,10 @@ const AdminDashboard = ({ user, onLogout }) => {
                 {bankForm.allowTopUp && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="block text-[10px] font-semibold text-slate-400 uppercase">Макс. сумма одного пополнения (₽):</label>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase flex items-center gap-1">
+                        <span>Макс. сумма пополнения (₽):</span>
+                        <HelpTooltip text={BANK_HELP_TEXTS.MAXIMUM_TOP_UP_RUBLES} />
+                      </label>
                       <input
                         type="number"
                         placeholder="Без лимита"
@@ -1300,7 +1367,10 @@ const AdminDashboard = ({ user, onLogout }) => {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-[10px] font-semibold text-slate-400 uppercase">Предел общего баланса вклада (₽):</label>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase flex items-center gap-1">
+                        <span>Предел баланса вклада (₽):</span>
+                        <HelpTooltip text={BANK_HELP_TEXTS.MAXIMUM_TOTAL_DEPOSIT_PER_CHILD_RUBLES} />
+                      </label>
                       <input
                         type="number"
                         placeholder="Без лимита"
@@ -1313,7 +1383,10 @@ const AdminDashboard = ({ user, onLogout }) => {
                 )}
 
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-semibold text-slate-400 uppercase">Режим начисления процентов:</label>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase flex items-center gap-1">
+                    <span>Режим начисления процентов:</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.INTEREST_ACCRUAL_MODE} />
+                  </label>
                   <select
                     value={bankForm.interestAccrualMode}
                     onChange={(e) => setBankForm({ ...bankForm, interestAccrualMode: e.target.value })}
@@ -1328,16 +1401,46 @@ const AdminDashboard = ({ user, onLogout }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              {/* Emoji Picker & Brand Color */}
+              <div className="border-t border-slate-800 pt-3.5 space-y-3">
                 <div>
-                  <label htmlFor="bank-color" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Цвет бренда</label>
-                  <input
-                    id="bank-color"
-                    type="color"
-                    value={bankForm.color}
-                    onChange={(e) => setBankForm({ ...bankForm, color: e.target.value })}
-                    className="w-8 h-8 rounded-full border border-slate-800 cursor-pointer block"
-                  />
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Иконка банка (Emoji)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.ICON_EMOJI} />
+                  </label>
+                  <div className="flex flex-wrap gap-2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl">
+                    {EMOJI_PICKER_OPTIONS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setBankForm({ ...bankForm, iconEmoji: emoji })}
+                        className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center transition ${
+                          bankForm.iconEmoji === emoji ? 'bg-indigo-600 scale-110 shadow-lg' : 'hover:bg-slate-800'
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 items-center">
+                  <div>
+                    <label htmlFor="bank-color" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                      <span>Цвет бренда</span>
+                      <HelpTooltip text={BANK_HELP_TEXTS.COLOR} />
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="bank-color"
+                        type="color"
+                        value={bankForm.color}
+                        onChange={(e) => setBankForm({ ...bankForm, color: e.target.value })}
+                        className="w-9 h-9 rounded-lg border border-slate-800 cursor-pointer block bg-slate-950 p-1"
+                      />
+                      <span className="text-xs font-mono text-slate-400">{bankForm.color}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1371,7 +1474,10 @@ const AdminDashboard = ({ user, onLogout }) => {
               </div>
 
               <div>
-                <label htmlFor="edit-bank-name" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Название банка</label>
+                <label htmlFor="edit-bank-name" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <span>Название банка</span>
+                  <HelpTooltip text={BANK_HELP_TEXTS.NAME} />
+                </label>
                 <input
                   id="edit-bank-name"
                   type="text"
@@ -1383,7 +1489,10 @@ const AdminDashboard = ({ user, onLogout }) => {
               </div>
 
               <div>
-                <label htmlFor="edit-bank-desc" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Описание</label>
+                <label htmlFor="edit-bank-desc" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                  <span>Описание</span>
+                  <HelpTooltip text={BANK_HELP_TEXTS.DESCRIPTION} />
+                </label>
                 <input
                   id="edit-bank-desc"
                   type="text"
@@ -1395,18 +1504,27 @@ const AdminDashboard = ({ user, onLogout }) => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="edit-bank-rate" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Ставка (б.п., 100 б.п. = 1%)</label>
+                  <label htmlFor="edit-bank-rate" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Процентная ставка (%)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.INTEREST_RATE_PERCENT} />
+                  </label>
                   <input
                     id="edit-bank-rate"
                     type="number"
+                    step="0.01"
+                    min="0.01"
+                    max="100"
                     required
-                    value={editingBank.interest_rate_bps}
-                    onChange={(e) => setEditingBank({ ...editingBank, interest_rate_bps: e.target.value })}
+                    value={editingBank.interest_rate_percent}
+                    onChange={(e) => setEditingBank({ ...editingBank, interest_rate_percent: e.target.value })}
                     className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 font-mono focus:border-indigo-500 outline-none transition"
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-bank-period" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Период (дней)</label>
+                  <label htmlFor="edit-bank-period" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Период (дней)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.PERIOD_DAYS} />
+                  </label>
                   <input
                     id="edit-bank-period"
                     type="number"
@@ -1420,7 +1538,10 @@ const AdminDashboard = ({ user, onLogout }) => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="edit-bank-min" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Мин. вклад (₽)</label>
+                  <label htmlFor="edit-bank-min" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Мин. вклад (₽)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.MINIMUM_DEPOSIT_RUBLES} />
+                  </label>
                   <input
                     id="edit-bank-min"
                     type="number"
@@ -1431,7 +1552,10 @@ const AdminDashboard = ({ user, onLogout }) => {
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-bank-max" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Макс. лимит / реб (₽)</label>
+                  <label htmlFor="edit-bank-max" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Макс. лимит / реб (₽)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.MAXIMUM_DEPOSIT_RUBLES} />
+                  </label>
                   <input
                     id="edit-bank-max"
                     type="number"
@@ -1444,18 +1568,26 @@ const AdminDashboard = ({ user, onLogout }) => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label htmlFor="edit-bank-penalty" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Досрочный штраф (б.п.)</label>
+                  <label htmlFor="edit-bank-penalty" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Досрочный штраф (%)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.EARLY_WITHDRAWAL_PENALTY_PERCENT} />
+                  </label>
                   <input
                     id="edit-bank-penalty"
                     type="number"
+                    step="0.01"
+                    min="0"
                     required
-                    value={editingBank.early_withdrawal_penalty_bps}
-                    onChange={(e) => setEditingBank({ ...editingBank, early_withdrawal_penalty_bps: e.target.value })}
+                    value={editingBank.early_withdrawal_penalty_percent}
+                    onChange={(e) => setEditingBank({ ...editingBank, early_withdrawal_penalty_percent: e.target.value })}
                     className="w-full bg-slate-950 border border-slate-800 text-slate-100 rounded-xl px-4 py-2.5 font-mono focus:border-indigo-500 outline-none transition"
                   />
                 </div>
                 <div>
-                  <label htmlFor="edit-bank-holding" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Мин. удержание (дней)</label>
+                  <label htmlFor="edit-bank-holding" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Мин. удержание (дней)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.MINIMUM_HOLDING_DAYS} />
+                  </label>
                   <input
                     id="edit-bank-holding"
                     type="number"
@@ -1483,12 +1615,18 @@ const AdminDashboard = ({ user, onLogout }) => {
                       onChange={(e) => setEditingBank({ ...editingBank, allow_top_up: e.target.checked })}
                       className="w-4 h-4 text-indigo-600 bg-slate-950 border-slate-800 rounded focus:ring-indigo-500"
                     />
-                    <label htmlFor="edit-allow-top-up" className="text-xs font-semibold text-slate-300">Разрешить пополнение открытых вкладов</label>
+                    <label htmlFor="edit-allow-top-up" className="text-xs font-semibold text-slate-300 flex items-center gap-1">
+                      <span>Разрешить пополнение</span>
+                      <HelpTooltip text={BANK_HELP_TEXTS.ALLOW_TOP_UP} />
+                    </label>
                   </div>
 
                   {editingBank.allow_top_up && (
                     <div className="space-y-1">
-                      <label className="block text-[10px] font-semibold text-slate-400 uppercase">Мин. сумма пополнения (₽):</label>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase flex items-center gap-1">
+                        <span>Мин. сумма пополнения (₽):</span>
+                        <HelpTooltip text={BANK_HELP_TEXTS.MINIMUM_TOP_UP_RUBLES} />
+                      </label>
                       <input
                         type="number"
                         placeholder="100"
@@ -1503,7 +1641,10 @@ const AdminDashboard = ({ user, onLogout }) => {
                 {editingBank.allow_top_up && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
-                      <label className="block text-[10px] font-semibold text-slate-400 uppercase">Макс. сумма пополнения (₽):</label>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase flex items-center gap-1">
+                        <span>Макс. сумма пополнения (₽):</span>
+                        <HelpTooltip text={BANK_HELP_TEXTS.MAXIMUM_TOP_UP_RUBLES} />
+                      </label>
                       <input
                         type="number"
                         placeholder="Без лимита"
@@ -1513,7 +1654,10 @@ const AdminDashboard = ({ user, onLogout }) => {
                       />
                     </div>
                     <div className="space-y-1">
-                      <label className="block text-[10px] font-semibold text-slate-400 uppercase">Предел общего баланса вклада (₽):</label>
+                      <label className="block text-[10px] font-semibold text-slate-400 uppercase flex items-center gap-1">
+                        <span>Предел общего баланса вклада (₽):</span>
+                        <HelpTooltip text={BANK_HELP_TEXTS.MAXIMUM_TOTAL_DEPOSIT_PER_CHILD_RUBLES} />
+                      </label>
                       <input
                         type="number"
                         placeholder="Без лимита"
@@ -1526,7 +1670,10 @@ const AdminDashboard = ({ user, onLogout }) => {
                 )}
 
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-semibold text-slate-400 uppercase">Режим начисления процентов:</label>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase flex items-center gap-1">
+                    <span>Режим начисления процентов:</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.INTEREST_ACCRUAL_MODE} />
+                  </label>
                   <select
                     value={editingBank.interest_accrual_mode}
                     onChange={(e) => setEditingBank({ ...editingBank, interest_accrual_mode: e.target.value })}
@@ -1535,6 +1682,49 @@ const AdminDashboard = ({ user, onLogout }) => {
                     <option value="whole_balance_on_schedule">Простой (капитализация на весь баланс в день общего расписания)</option>
                     <option value="per_contribution_period">Реалистичный (каждый взнос имеет индивидуальный график и период)</option>
                   </select>
+                </div>
+              </div>
+
+              {/* Emoji Picker & Brand Color for Editing */}
+              <div className="border-t border-slate-800 pt-3.5 space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                    <span>Иконка банка (Emoji)</span>
+                    <HelpTooltip text={BANK_HELP_TEXTS.ICON_EMOJI} />
+                  </label>
+                  <div className="flex flex-wrap gap-2 bg-slate-950 border border-slate-800 p-2.5 rounded-xl">
+                    {EMOJI_PICKER_OPTIONS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => setEditingBank({ ...editingBank, icon_emoji: emoji })}
+                        className={`w-9 h-9 rounded-lg text-lg flex items-center justify-center transition ${
+                          editingBank.icon_emoji === emoji ? 'bg-indigo-600 scale-110 shadow-lg' : 'hover:bg-slate-800'
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 items-center">
+                  <div>
+                    <label htmlFor="edit-bank-color" className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                      <span>Цвет бренда</span>
+                      <HelpTooltip text={BANK_HELP_TEXTS.COLOR} />
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        id="edit-bank-color"
+                        type="color"
+                        value={editingBank.color || '#6366f1'}
+                        onChange={(e) => setEditingBank({ ...editingBank, color: e.target.value })}
+                        className="w-9 h-9 rounded-lg border border-slate-800 cursor-pointer block bg-slate-950 p-1"
+                      />
+                      <span className="text-xs font-mono text-slate-400">{editingBank.color}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 

@@ -751,7 +751,7 @@ const ChildDashboard = ({ user, onLogout }) => {
                           className="w-8 h-8 rounded-lg flex items-center justify-center text-lg font-bold shadow"
                           style={{ backgroundColor: `${dep.bank_color || '#6366f1'}33`, color: dep.bank_color || '#6366f1' }}
                         >
-                          🏦
+                          {dep.bank_icon_emoji || '🏦'}
                         </div>
                         <div>
                           <h4 className="text-sm font-bold text-slate-200">{dep.bank_name}</h4>
@@ -988,7 +988,11 @@ const ChildDashboard = ({ user, onLogout }) => {
                           className="sr-only"
                         />
                         <div className="flex items-center gap-2.5">
-                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: b.color || '#6366f1' }}></div>
+                          {b.icon_emoji ? (
+                            <span className="text-base">{b.icon_emoji}</span>
+                          ) : (
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: b.color || '#6366f1' }}></div>
+                          )}
                           <div>
                             <span className="text-xs font-bold text-slate-200 block">{b.name}</span>
                             <span className="text-[10px] text-slate-500">Ставка: {(b.interest_rate_bps / 100).toFixed(1)}% | Период: {b.period_days} дн.</span>
@@ -1276,7 +1280,11 @@ const ChildDashboard = ({ user, onLogout }) => {
                       />
                       <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
-                          <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: b.color || '#6366f1' }}></div>
+                          {b.icon_emoji ? (
+                            <span className="text-base">{b.icon_emoji}</span>
+                          ) : (
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: b.color || '#6366f1' }}></div>
+                          )}
                           <span className="text-sm font-bold text-slate-200">{b.name}</span>
                         </div>
                         <ul className="text-[10px] text-slate-500 space-y-0.5 font-sans">

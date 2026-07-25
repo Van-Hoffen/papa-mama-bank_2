@@ -14,7 +14,7 @@ router.get('/', requireAuth, requireFamilyMembership, async (req, res) => {
 
   try {
     let query = `
-      SELECT d.*, b.name as bank_name, b.color as bank_color, b.icon as bank_icon, 
+      SELECT d.*, b.name as bank_name, b.color as bank_color, b.icon as bank_icon, b.icon_emoji as bank_icon_emoji, 
              b.allow_top_up, b.minimum_top_up_kopecks, b.maximum_top_up_kopecks, b.maximum_total_deposit_per_child_kopecks, b.is_active as bank_is_active,
              u.display_name as child_name, cp.user_id as child_user_id
       FROM deposits d
@@ -86,7 +86,7 @@ router.get('/:id', requireAuth, requireFamilyMembership, async (req, res) => {
 
   try {
     const deposit = await dbGet(`
-      SELECT d.*, b.name as bank_name, b.color as bank_color, b.icon as bank_icon, 
+      SELECT d.*, b.name as bank_name, b.color as bank_color, b.icon as bank_icon, b.icon_emoji as bank_icon_emoji, 
              b.allow_top_up, b.minimum_top_up_kopecks, b.maximum_top_up_kopecks, b.maximum_total_deposit_per_child_kopecks, b.is_active as bank_is_active,
              u.display_name as child_name, cp.user_id as child_user_id
       FROM deposits d

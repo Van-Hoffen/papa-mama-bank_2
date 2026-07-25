@@ -23,7 +23,7 @@ const releaseLock = (id) => {
 router.get('/pending', requireAuth, requireFamilyAdmin, requireFamilyMembership, async (req, res) => {
   try {
     const ops = await dbAll(`
-      SELECT o.*, b.name as bank_name, b.color as bank_color, u.display_name as child_name
+      SELECT o.*, b.name as bank_name, b.color as bank_color, b.icon_emoji as bank_icon_emoji, u.display_name as child_name
       FROM operations o
       JOIN banks b ON o.bank_id = b.id
       JOIN child_profiles cp ON o.child_profile_id = cp.id

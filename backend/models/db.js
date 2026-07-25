@@ -130,6 +130,7 @@ const initDB = async () => {
         description TEXT,
         color TEXT,
         icon TEXT,
+        icon_emoji TEXT DEFAULT '🏦',
         interest_rate_bps INTEGER NOT NULL CHECK(interest_rate_bps >= 0),
         period_days INTEGER NOT NULL CHECK(period_days > 0),
         minimum_deposit_kopecks INTEGER NOT NULL CHECK(minimum_deposit_kopecks >= 0),
@@ -201,6 +202,9 @@ const initDB = async () => {
     } catch (e) {}
     try {
       await dbRun(`ALTER TABLE banks ADD COLUMN interest_accrual_mode TEXT DEFAULT 'whole_balance_on_schedule'`);
+    } catch (e) {}
+    try {
+      await dbRun(`ALTER TABLE banks ADD COLUMN icon_emoji TEXT DEFAULT '🏦'`);
     } catch (e) {}
 
     try {
