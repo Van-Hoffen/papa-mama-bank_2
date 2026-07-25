@@ -3,8 +3,13 @@ const path = require('path');
 
 const backendDir = path.join(__dirname, 'backend');
 
-console.log('Starting production server...');
-const backend = spawn('node', ['server.js'], { cwd: backendDir, stdio: 'inherit', shell: true });
+console.log('Starting production server on port ' + (process.env.PORT || '3000') + '...');
+const backend = spawn('node', ['server.js'], { 
+  cwd: backendDir, 
+  stdio: 'inherit', 
+  shell: true,
+  env: { ...process.env, PORT: process.env.PORT || '3000' } 
+});
 
 const cleanup = () => {
   console.log('Cleaning up production server...');

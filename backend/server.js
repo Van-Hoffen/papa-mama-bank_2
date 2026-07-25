@@ -8,7 +8,7 @@ const path = require('path');
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000; // Dynamically uses PORT from env or falls back to 3000 (production)
+const PORT = process.env.PORT || 5000; // Dynamically uses PORT from env or falls back to 5000 for development
 
 // Middleware
 app.use(cors());
