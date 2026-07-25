@@ -483,12 +483,16 @@ const initDB = async () => {
         family_id INTEGER,
         actor_user_id INTEGER,
         actor_role TEXT,
-        event_type TEXT NOT NULL,
+        action TEXT,
+        event_type TEXT,
+        entity_type TEXT,
         target_type TEXT,
+        entity_id INTEGER,
         target_id INTEGER,
         request_id TEXT,
         ip_address TEXT,
         user_agent TEXT,
+        reason TEXT,
         metadata_json TEXT,
         FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE SET NULL,
         FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
@@ -506,10 +510,19 @@ const initDB = async () => {
       await dbRun(`ALTER TABLE audit_logs ADD COLUMN actor_role TEXT`);
     } catch (e) {}
     try {
+      await dbRun(`ALTER TABLE audit_logs ADD COLUMN action TEXT`);
+    } catch (e) {}
+    try {
       await dbRun(`ALTER TABLE audit_logs ADD COLUMN event_type TEXT`);
     } catch (e) {}
     try {
+      await dbRun(`ALTER TABLE audit_logs ADD COLUMN entity_type TEXT`);
+    } catch (e) {}
+    try {
       await dbRun(`ALTER TABLE audit_logs ADD COLUMN target_type TEXT`);
+    } catch (e) {}
+    try {
+      await dbRun(`ALTER TABLE audit_logs ADD COLUMN entity_id INTEGER`);
     } catch (e) {}
     try {
       await dbRun(`ALTER TABLE audit_logs ADD COLUMN target_id INTEGER`);
@@ -518,7 +531,16 @@ const initDB = async () => {
       await dbRun(`ALTER TABLE audit_logs ADD COLUMN request_id TEXT`);
     } catch (e) {}
     try {
+      await dbRun(`ALTER TABLE audit_logs ADD COLUMN ip_address TEXT`);
+    } catch (e) {}
+    try {
       await dbRun(`ALTER TABLE audit_logs ADD COLUMN user_agent TEXT`);
+    } catch (e) {}
+    try {
+      await dbRun(`ALTER TABLE audit_logs ADD COLUMN reason TEXT`);
+    } catch (e) {}
+    try {
+      await dbRun(`ALTER TABLE audit_logs ADD COLUMN metadata_json TEXT`);
     } catch (e) {}
 
     // Backfill owner_user_id for existing families if null
@@ -543,21 +565,8 @@ const initDB = async () => {
 
     // Self-healing migration for family_members check constraint (to support family_owner and family_adult)
     try {
-      await dbRun('BEGIN TRANSACTION');
-      let needsMigrationFm = false;
-      try {
-        await dbRun(`
-          INSERT INTO family_members (id, family_id, user_id, role)
-          VALUES (-999, -999, -999, 'family_owner')
-        `);
-      } catch (err) {
-        if (err.message && err.message.includes('CHECK constraint failed')) {
-          needsMigrationFm = true;
-        }
-      }
-      await dbRun('ROLLBACK');
-
-      if (needsMigrationFm) {
+      const fmTable = await dbGet(`SELECT sql FROM sqlite_master WHERE type='table' AND name='family_members'`);
+      if (fmTable && fmTable.sql && (!fmTable.sql.includes('family_owner') || !fmTable.sql.includes('family_adult'))) {
         console.log('Migrating family_members to support family_owner and family_adult roles...');
         await dbRun('PRAGMA foreign_keys=OFF');
         await dbRun('BEGIN TRANSACTION');

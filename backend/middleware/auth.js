@@ -116,10 +116,13 @@ const requireFamilyAdult = (req, res, next) => {
 };
 
 /**
- * Legacy alias - limits access to family administrators (owners or adults).
+ * Limits access to family administrators (owners or adults).
  */
 const requireFamilyAdmin = (req, res, next) => {
-  return requireFamilyAdult(req, res, next);
+  if (req.user?.platformRole === 'user' && ['family_owner', 'family_adult', 'family_admin'].includes(req.user?.familyRole)) {
+    return next();
+  }
+  return res.status(403).json({ error: 'Доступ запрещен. Требуются права администратора семьи.' });
 };
 
 /**
